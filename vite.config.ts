@@ -20,7 +20,9 @@ export default defineConfig({
         theme_color: '#0f1419',
         background_color: '#0f1419',
         display: 'standalone',
-        start_url: './',
+        // Must be index.html — S3 REST returns AccessDenied for `/dist/` (no index doc).
+        start_url: './index.html',
+        scope: './',
         icons: [
           {
             src: 'favicon.svg',

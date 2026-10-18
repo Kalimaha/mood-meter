@@ -6,13 +6,15 @@ import { DayEntryPanel } from './components/rating/DayEntryPanel'
 import type { TimelineEvent } from './domain/types'
 import { loadDayEntries } from './storage/days'
 import { loadEvents } from './storage/events'
+import { ensureDemoSeed } from './storage/seed'
 import { dayEntriesToTimelineDays } from './storage/timelineDays'
 import type { TimelineDay } from './components/timeline'
 
 function App() {
-  const [days, setDays] = useState<TimelineDay[]>(() =>
-    dayEntriesToTimelineDays(loadDayEntries()),
-  )
+  const [days, setDays] = useState<TimelineDay[]>(() => {
+    ensureDemoSeed()
+    return dayEntriesToTimelineDays(loadDayEntries())
+  })
   const [events, setEvents] = useState<TimelineEvent[]>(() => loadEvents())
 
   const refreshDays = useCallback(() => {
