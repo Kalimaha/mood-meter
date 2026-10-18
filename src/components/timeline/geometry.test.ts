@@ -47,51 +47,37 @@ describe('buildPoints', () => {
     expect(buildPoints([])).toEqual([])
   })
 
-  it('starts at origin and adds one vertex per day', () => {
-    const points = buildPoints([day('2026-01-01', 'flat')])
-    expect(points).toHaveLength(2)
-    expect(points[0]).toEqual({ x: 0, y: 0 })
-    expect(points[1]).toEqual({ x: DEFAULT_STEP, y: 0 })
+  it('uses cumulative y (up → −step in SVG space)', () => {
+    const points = buildPoints([day('2026-01-01', 'up')], DEFAULT_STEP)
+    expect(points).toHaveLength(1)
+    expect(points[0]).toEqual({ x: 0, y: -DEFAULT_STEP })
   })
 
-  it('keeps y constant across a flat sequence', () => {
-    const points = buildPoints([
-      day('2026-01-01', 'flat'),
-      day('2026-01-02', 'flat'),
-      day('2026-01-03', 'flat'),
-    ])
-    expect(points.every((p) => p.y === 0)).toBe(true)
-    expect(points[points.length - 1]?.x).toBe(DEFAULT_STEP * 3)
-  })
-
-  it('rises at +45° for an up sequence', () => {
-    const points = buildPoints([
-      day('2026-01-01', 'up'),
-      day('2026-01-02', 'up'),
-    ])
-    expect(points[1]?.y).toBeCloseTo(-DEFAULT_STEP)
-    expect(points[2]?.y).toBeCloseTo(-DEFAULT_STEP * 2)
-  })
-
-  it('falls at −45° for a down sequence', () => {
-    const points = buildPoints([
-      day('2026-01-01', 'down'),
-      day('2026-01-02', 'down'),
-    ])
-    expect(points[1]?.y).toBeCloseTo(DEFAULT_STEP)
-    expect(points[2]?.y).toBeCloseTo(DEFAULT_STEP * 2)
-  })
-
-  it('combines up, flat, and down segments', () => {
-    const points = buildPoints([
-      day('2026-01-01', 'up'),
-      day('2026-01-02', 'flat'),
-      day('2026-01-03', 'down'),
-    ])
-    expect(points).toHaveLength(4)
+  it('fills missing days as flat (cumulative unchanged)', () => {
+    const points = buildPoints(
+      [day('2026-01-01', 'up'), day('2026-01-03', 'flat')],
+      DEFAULT_STEP,
+    )
+    expect(points).toHaveLength(3)
+    expect(points[0]?.y).toBeCloseTo(-DEFAULT_STEP)
     expect(points[1]?.y).toBeCloseTo(-DEFAULT_STEP)
     expect(points[2]?.y).toBeCloseTo(-DEFAULT_STEP)
-    expect(points[3]?.y).toBeCloseTo(0)
+  })
+
+  it('accumulates ups and downs', () => {
+    const points = buildPoints(
+      [
+        day('2026-01-01', 'up'),
+        day('2026-01-02', 'up'),
+        day('2026-01-03', 'down'),
+      ],
+      DEFAULT_STEP,
+    )
+    expect(points.map((p) => p.y)).toEqual([
+      -DEFAULT_STEP,
+      -DEFAULT_STEP * 2,
+      -DEFAULT_STEP,
+    ])
   })
 })
 
@@ -120,13 +106,13 @@ describe('buildTimelineGeometry', () => {
     expect(g.height).toBeGreaterThan(0)
   })
 
-  it('normalizes points into a padded viewBox', () => {
+  it('normalizes cumulative points into a padded viewBox', () => {
     const g = buildTimelineGeometry([
       day('2026-01-01', 'up'),
       day('2026-01-02', 'down'),
     ])
     expect(g.pathD.startsWith('M ')).toBe(true)
-    expect(g.points.length).toBe(3)
+    expect(g.points.length).toBe(2)
     expect(g.viewBox).toBe(`0 0 ${g.width} ${g.height}`)
     expect(g.points.every((p) => p.x >= 0 && p.y >= 0)).toBe(true)
   })

@@ -13,7 +13,13 @@ function getXForDate(iso: string): number {
 }
 
 const events: TimelineEvent[] = [
-  { id: 'pin', label: 'Launch', startDate: '2026-04-02' },
+  {
+    id: 'pin-desc',
+    label: 'Launch',
+    description: 'Shipped v1 to prod',
+    startDate: '2026-04-02',
+  },
+  { id: 'pin-empty', label: 'Move', startDate: '2026-04-04' },
   {
     id: 'band',
     label: 'Review',
@@ -23,21 +29,39 @@ const events: TimelineEvent[] = [
 ]
 
 describe('TimelineEventMarkers', () => {
-  it('renders pin and range markers from props', () => {
+  it('renders single-day pins only (no always-visible labels)', () => {
     render(
       <TimelineEventMarkers events={events} getXForDate={getXForDate} />,
     )
     expect(
       screen.getByRole('button', { name: /Launch, 2026-04-02/i }),
     ).toBeInTheDocument()
+    // Hollow (no description) is not a button
     expect(
-      screen.getByRole('button', {
-        name: /Review, 2026-04-01 to 2026-04-05/i,
-      }),
-    ).toBeInTheDocument()
+      screen.queryByRole('button', { name: /Move, 2026-04-04/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/Move, 2026-04-04/i)).toBeInTheDocument()
+    expect(screen.queryByText('Launch')).not.toBeInTheDocument()
+    expect(screen.queryByText('Move')).not.toBeInTheDocument()
   })
 
-  it('calls onSelect for a marker', async () => {
+  it('uses filled vs hollow dots from description presence', () => {
+    const { container } = render(
+      <TimelineEventMarkers events={events} getXForDate={getXForDate} />,
+    )
+    expect(
+      container.querySelector(
+        '[data-has-description="true"] .mm-event-pin__dot--filled',
+      ),
+    ).toBeTruthy()
+    expect(
+      container.querySelector(
+        '[data-has-description="false"] .mm-event-pin__dot--hollow',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('reveals description only when clicking a filled dot', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
     render(
@@ -47,7 +71,9 @@ describe('TimelineEventMarkers', () => {
         onSelect={onSelect}
       />,
     )
+
     await user.click(screen.getByRole('button', { name: /Launch/i }))
     expect(onSelect).toHaveBeenCalledWith(events[0])
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Shipped v1 to prod')
   })
 })

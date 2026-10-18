@@ -17,10 +17,10 @@ describe('EventsPanel', () => {
     )
 
     await user.type(screen.getByLabelText(/^Label$/i), 'Ship')
-    const start = screen.getByLabelText(/^Start$/i)
+    const start = screen.getByLabelText(/^Start date$/i)
     await user.clear(start)
     await user.type(start, '2026-05-01')
-    await user.click(screen.getByRole('button', { name: /add event/i }))
+    await user.click(screen.getByRole('button', { name: /create event/i }))
 
     expect(onEventsChange).toHaveBeenCalled()
     const next = onEventsChange.mock.calls[0]![0] as Array<{

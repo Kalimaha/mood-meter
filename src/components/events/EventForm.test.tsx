@@ -4,13 +4,30 @@ import { describe, expect, it, vi } from 'vitest'
 import { EventForm } from './EventForm'
 
 describe('EventForm', () => {
+  it('wraps fields in an Event section with optional end-date placeholder hint', () => {
+    render(<EventForm onSubmit={vi.fn()} defaultStartDate="2026-10-18" />)
+
+    expect(screen.getByRole('heading', { name: 'Event' })).toBeInTheDocument()
+    expect(screen.queryByText(/^Label$/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Start$/)).not.toBeInTheDocument()
+    expect(
+      screen.getByLabelText(/end date \(optional\)/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/end date is optional/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /create event/i }),
+    ).toHaveClass('w-full')
+  })
+
   it('submits a single-day event', async () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn()
     render(<EventForm onSubmit={onSubmit} defaultStartDate="2026-10-18" />)
 
     await user.type(screen.getByLabelText(/^Label$/i), 'Birthday')
-    await user.click(screen.getByRole('button', { name: /add event/i }))
+    await user.click(screen.getByRole('button', { name: /create event/i }))
 
     expect(onSubmit).toHaveBeenCalledWith({
       label: 'Birthday',
@@ -24,24 +41,26 @@ describe('EventForm', () => {
     render(<EventForm onSubmit={onSubmit} defaultStartDate="2026-04-01" />)
 
     await user.type(screen.getByLabelText(/^Label$/i), 'Review')
-    await user.clear(screen.getByLabelText(/End/i))
-    await user.type(screen.getByLabelText(/End/i), '2026-04-05')
-    await user.click(screen.getByRole('button', { name: /add event/i }))
+    await user.type(screen.getByLabelText(/^Description/i), 'Sprint review week')
+    await user.clear(screen.getByLabelText(/end date \(optional\)/i))
+    await user.type(screen.getByLabelText(/end date \(optional\)/i), '2026-04-05')
+    await user.click(screen.getByRole('button', { name: /create event/i }))
 
     expect(onSubmit).toHaveBeenCalledWith({
       label: 'Review',
+      description: 'Sprint review week',
       startDate: '2026-04-01',
       endDate: '2026-04-05',
     })
   })
 
-  it('shows validation when label is empty', async () => {
+  it('shows validation when label and description are empty', async () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn()
     render(<EventForm onSubmit={onSubmit} defaultStartDate="2026-10-18" />)
 
-    await user.click(screen.getByRole('button', { name: /add event/i }))
-    expect(screen.getByRole('alert')).toHaveTextContent(/label/i)
+    await user.click(screen.getByRole('button', { name: /create event/i }))
+    expect(screen.getByRole('alert')).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 })

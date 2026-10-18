@@ -12,34 +12,82 @@
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  padding: 0.75rem 0.5rem;
+  padding: 0.5rem 0.25rem;
   scrollbar-color: var(--mm-border) transparent;
 }
 
 .mm-timeline__track {
+  position: relative;
   min-width: 100%;
 }
 
-.mm-timeline__markers {
-  margin-bottom: 0.25rem;
-}
-
-.mm-timeline__svg {
+.mm-timeline__chart {
   display: block;
-  min-height: 6rem;
-  max-height: 10rem;
-  height: auto;
-  color: var(--mm-accent);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
-.mm-timeline__line {
-  color: inherit;
+.mm-timeline__chart .echarts-for-react,
+.mm-timeline__chart canvas {
+  pointer-events: none;
 }
 
-.mm-timeline__dot {
-  fill: var(--mm-bg-elevated);
-  stroke: var(--mm-accent);
-  stroke-width: 2;
+.mm-timeline__hits {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.mm-timeline__hit-band {
+  position: absolute;
+  top: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  /* Near-opaque fill required — fully transparent elements often miss taps */
+  background: rgb(0 0 0 / 0.01);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mm-timeline__hit-pin {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.01);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mm-timeline__hit-pin--inert {
+  pointer-events: none;
+  width: 12px;
+  height: 12px;
+}
+
+/* Portaled to document.body — fixed to viewport at click coords */
+.mm-timeline__popover {
+  position: fixed;
+  z-index: 9999;
+  max-width: 14rem;
+  padding: 0.45rem 0.6rem;
+  transform: translate(-50%, calc(-100% - 12px));
+  border: 1px solid var(--mm-border);
+  border-radius: calc(var(--mm-radius) * 0.75);
+  background: var(--mm-bg-elevated);
+  color: var(--mm-fg);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+  pointer-events: none;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--mm-fg) 18%, transparent);
 }
 
 .mm-timeline__empty {

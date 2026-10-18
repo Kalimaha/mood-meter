@@ -10,10 +10,12 @@ export interface EventFormProps {
   disabled?: boolean
   /** Prefill start date (YYYY-MM-DD). */
   defaultStartDate?: string
+  /** Section heading. Default "Event". */
+  title?: string
 }
 
 const ERROR_COPY: Record<TimelineEventValidationError, string> = {
-  'empty-label': 'Add a short label.',
+  'empty-label': 'Add a short description or label.',
   'invalid-start': 'Start date must be YYYY-MM-DD.',
   'invalid-end': 'End date must be YYYY-MM-DD.',
   'end-before-start': 'End date cannot be before start.',
@@ -27,28 +29,46 @@ function todayIso(): string {
   return `${y}-${m}-${d}`
 }
 
+const fieldClass =
+  'w-full rounded-[var(--mm-radius)] border border-[var(--mm-border)] bg-[var(--mm-bg-elevated)] px-3 py-2 text-[var(--mm-fg)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)]'
+
+/**
+ * Create-event form: placeholders only (no visible field labels),
+ * full-width submit for phone layouts. End date is optional.
+ */
 export function EventForm({
   onSubmit,
   disabled = false,
   defaultStartDate,
+  title = 'Event',
 }: EventFormProps) {
   const formId = useId()
+  const headingId = `${formId}-heading`
   const labelId = `${formId}-label`
+  const descriptionId = `${formId}-description`
   const startId = `${formId}-start`
   const endId = `${formId}-end`
   const errorId = `${formId}-error`
 
   const [label, setLabel] = useState('')
+  const [description, setDescription] = useState('')
   const [startDate, setStartDate] = useState(defaultStartDate ?? todayIso())
   const [endDate, setEndDate] = useState('')
   const [error, setError] = useState<TimelineEventValidationError | null>(null)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!label.trim() && !description.trim()) {
+      setError('empty-label')
+      return
+    }
     const input: CreateTimelineEventInput = {
-      label,
+      label: label.trim() || description.trim() || 'Event',
       startDate,
       ...(endDate.trim() !== '' ? { endDate: endDate.trim() } : {}),
+      ...(description.trim() !== ''
+        ? { description: description.trim() }
+        : {}),
     }
     const validation = validateTimelineEvent(input)
     if (validation !== null) {
@@ -58,20 +78,33 @@ export function EventForm({
     setError(null)
     onSubmit(input)
     setLabel('')
+    setDescription('')
     setEndDate('')
   }
 
   return (
-    <form
-      className="flex flex-col gap-3"
-      onSubmit={handleSubmit}
-      noValidate
-      aria-describedby={error ? errorId : undefined}
+    <section
+      className="flex w-full flex-col gap-3 rounded-[var(--mm-radius)] border p-4"
+      style={{
+        borderColor: 'var(--mm-border)',
+        background: 'var(--mm-bg-elevated)',
+      }}
+      aria-labelledby={headingId}
     >
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor={labelId} className="text-sm text-[var(--mm-fg-muted)]">
-          Label
-        </label>
+      <h2
+        id={headingId}
+        className="m-0 text-lg font-semibold"
+        style={{ color: 'var(--mm-fg)' }}
+      >
+        {title}
+      </h2>
+
+      <form
+        className="flex w-full flex-col gap-3"
+        onSubmit={handleSubmit}
+        noValidate
+        aria-describedby={error ? errorId : undefined}
+      >
         <input
           id={labelId}
           name="label"
@@ -79,17 +112,26 @@ export function EventForm({
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           disabled={disabled}
-          placeholder="Birthday, review week…"
+          placeholder="Label"
+          aria-label="Label"
           autoComplete="off"
-          className="rounded-[var(--mm-radius)] border border-[var(--mm-border)] bg-[var(--mm-bg-elevated)] px-3 py-2 text-[var(--mm-fg)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)]"
+          className={fieldClass}
         />
-      </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={startId} className="text-sm text-[var(--mm-fg-muted)]">
-            Start
-          </label>
+        <input
+          id={descriptionId}
+          name="description"
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          disabled={disabled}
+          placeholder="Description (optional)"
+          aria-label="Description"
+          autoComplete="off"
+          className={fieldClass}
+        />
+
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
           <input
             id={startId}
             name="startDate"
@@ -98,13 +140,9 @@ export function EventForm({
             onChange={(e) => setStartDate(e.target.value)}
             disabled={disabled}
             required
-            className="rounded-[var(--mm-radius)] border border-[var(--mm-border)] bg-[var(--mm-bg-elevated)] px-3 py-2 text-[var(--mm-fg)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)]"
+            aria-label="Start date"
+            className={fieldClass}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={endId} className="text-sm text-[var(--mm-fg-muted)]">
-            End <span className="font-normal">(optional)</span>
-          </label>
           <input
             id={endId}
             name="endDate"
@@ -112,24 +150,30 @@ export function EventForm({
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             disabled={disabled}
-            className="rounded-[var(--mm-radius)] border border-[var(--mm-border)] bg-[var(--mm-bg-elevated)] px-3 py-2 text-[var(--mm-fg)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)]"
+            aria-label="End date (optional)"
+            title="End date (optional)"
+            placeholder="End date (optional)"
+            className={fieldClass}
           />
         </div>
-      </div>
-
-      {error !== null ? (
-        <p id={errorId} role="alert" className="m-0 text-sm text-red-500">
-          {ERROR_COPY[error]}
+        <p className="m-0 text-xs" style={{ color: 'var(--mm-fg-muted)' }}>
+          End date is optional — leave blank for a single-day event.
         </p>
-      ) : null}
 
-      <button
-        type="submit"
-        disabled={disabled}
-        className="self-start rounded-[var(--mm-radius)] bg-[var(--mm-accent)] px-4 py-2 text-sm font-semibold text-[var(--mm-accent-fg)] outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)] disabled:opacity-50"
-      >
-        Add event
-      </button>
-    </form>
+        {error !== null ? (
+          <p id={errorId} role="alert" className="m-0 text-sm text-red-500">
+            {ERROR_COPY[error]}
+          </p>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={disabled}
+          className="w-full min-h-11 rounded-[var(--mm-radius)] bg-[var(--mm-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--mm-accent-fg)] outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)] disabled:opacity-50"
+        >
+          Create event
+        </button>
+      </form>
+    </section>
   )
 }

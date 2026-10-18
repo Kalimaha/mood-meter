@@ -19,6 +19,8 @@ export interface DayMoodEntry {
 export interface TimelineEvent {
   id: string
   label: string
+  /** Optional longer text shown on click when non-empty after trim. */
+  description?: string
   /** ISO date (YYYY-MM-DD) for single-day, or range start. */
   startDate: string
   /** ISO date for range end; omit for single-day events. */

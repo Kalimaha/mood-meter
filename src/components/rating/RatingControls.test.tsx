@@ -30,4 +30,15 @@ describe('RatingControls', () => {
     await user.click(screen.getByRole('button', { name: 'Down' }))
     expect(onSelect).toHaveBeenCalledWith('down')
   })
+
+  it('does not render emoji markers on rating buttons', () => {
+    const { container } = render(<RatingControls onSelect={() => undefined} />)
+    expect(container.textContent ?? '').not.toContain('⬆️')
+    expect(container.textContent ?? '').not.toContain('🟰')
+    expect(container.textContent ?? '').not.toContain('⬇️')
+    for (const button of screen.getAllByRole('button')) {
+      expect(button.querySelector('span')).toBeNull()
+    }
+  })
 })
+

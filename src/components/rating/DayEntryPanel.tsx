@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { formatIsoDateLabel, todayIso } from '../../domain/dates'
+import { useCallback, useEffect, useId, useState } from 'react'
+import { todayIso } from '../../domain/dates'
 import type { DayMoodEntry, MoodRating } from '../../domain/types'
 import { getDayEntry, upsertDayEntry } from '../../storage/days'
 import { DayNoteField } from '../notes/DayNoteField'
@@ -12,21 +12,33 @@ const RATING_LABEL: Record<MoodRating, string> = {
 }
 
 export interface DayEntryPanelProps {
-  /** ISO date to edit; defaults to today. */
+  /** ISO date to edit; when omitted, uses internal state defaulting to today. */
   date?: string
+  /** Called when the user picks a new date in the date picker. */
+  onDateChange?: (isoDate: string) => void
   storage?: Storage
   /** Fires after a rating/note is persisted. */
   onChange?: (entry: DayMoodEntry) => void
 }
 
 export function DayEntryPanel({
-  date = todayIso(),
+  date: dateProp,
+  onDateChange,
   storage = localStorage,
   onChange,
 }: DayEntryPanelProps) {
+  const dateInputId = useId()
+  const isControlled = dateProp !== undefined
+  const [internalDate, setInternalDate] = useState(() => dateProp ?? todayIso())
+  const date = isControlled ? dateProp : internalDate
+
   const [rating, setRating] = useState<MoodRating | undefined>()
   const [noteText, setNoteText] = useState('')
   const [status, setStatus] = useState<string | null>(null)
+
+  const isToday = date === todayIso()
+  const dayPhrase = isToday ? "today's" : "this day's"
+  const forDayPhrase = isToday ? 'for today' : 'for this day'
 
   useEffect(() => {
     const existing = getDayEntry(date, storage)
@@ -48,44 +60,49 @@ export function DayEntryPanel({
       setRating(nextRating)
       setNoteText(nextNote)
       onChange?.(entry)
+      return entry
     },
     [date, onChange, storage],
   )
 
-  const handleSelect = (next: MoodRating) => {
-    if (rating !== undefined && rating !== next) {
-      const confirmed = window.confirm(
-        `Replace today's ${RATING_LABEL[rating]} rating with ${RATING_LABEL[next]}?`,
-      )
-      if (!confirmed) {
-        setStatus(`Kept ${RATING_LABEL[rating]} rating.`)
-        return
-      }
-      persist(next, noteText)
-      setStatus(
-        `Updated rating from ${RATING_LABEL[rating]} to ${RATING_LABEL[next]}.`,
-      )
+  const handleDateInputChange = (next: string) => {
+    if (!next) {
       return
     }
-
-    if (rating === next) {
-      setStatus(`Already rated ${RATING_LABEL[next]} for today.`)
-      return
+    if (!isControlled) {
+      setInternalDate(next)
     }
-
-    persist(next, noteText)
-    setStatus(`Saved ${RATING_LABEL[next]} rating for today.`)
+    onDateChange?.(next)
   }
 
-  const handleNoteBlur = () => {
+  const handleSelect = (next: MoodRating) => {
+    setRating(next)
+    setStatus(null)
+  }
+
+  const handleSave = () => {
     if (rating === undefined) {
-      setStatus('Pick a rating before saving a note.')
+      setStatus('Pick a rating before saving.')
       return
     }
+
+    const existing = getDayEntry(date, storage)
+    if (
+      existing !== undefined &&
+      existing.rating !== rating
+    ) {
+      const confirmed = window.confirm(
+        `Replace ${dayPhrase} ${RATING_LABEL[existing.rating]} rating with ${RATING_LABEL[rating]}?`,
+      )
+      if (!confirmed) {
+        setStatus(`Kept ${RATING_LABEL[existing.rating]} rating.`)
+        setRating(existing.rating)
+        return
+      }
+    }
+
     persist(rating, noteText)
-    setStatus(
-      noteText.trim().length > 0 ? 'Note saved.' : 'Note cleared.',
-    )
+    setStatus(`Saved ${RATING_LABEL[rating]} rating ${forDayPhrase}.`)
   }
 
   return (
@@ -97,7 +114,7 @@ export function DayEntryPanel({
       }}
       aria-labelledby="day-entry-heading"
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2">
         <h2
           id="day-entry-heading"
           className="m-0 text-lg font-semibold"
@@ -105,9 +122,19 @@ export function DayEntryPanel({
         >
           Today
         </h2>
-        <p className="m-0 text-sm" style={{ color: 'var(--mm-fg-muted)' }}>
-          {formatIsoDateLabel(date)}
-        </p>
+        <input
+          id={dateInputId}
+          type="date"
+          value={date}
+          onChange={(e) => handleDateInputChange(e.target.value)}
+          aria-label="Date"
+          className="min-h-11 rounded-[var(--mm-radius)] border px-3 py-2 text-sm"
+          style={{
+            borderColor: 'var(--mm-border)',
+            background: 'var(--mm-bg)',
+            color: 'var(--mm-fg)',
+          }}
+        />
       </div>
 
       <RatingControls value={rating} onSelect={handleSelect} />
@@ -115,9 +142,16 @@ export function DayEntryPanel({
       <DayNoteField
         value={noteText}
         onChange={setNoteText}
-        onBlur={handleNoteBlur}
         disabled={rating === undefined}
       />
+
+      <button
+        type="button"
+        onClick={handleSave}
+        className="w-full min-h-11 rounded-[var(--mm-radius)] bg-[var(--mm-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--mm-accent-fg)] outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)]"
+      >
+        Save
+      </button>
 
       {status ? (
         <p

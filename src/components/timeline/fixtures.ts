@@ -1,6 +1,6 @@
 import type { TimelineDay } from './types'
 
-/** All-flat stretch — horizontal polyline. */
+/** All-flat stretch — cumulative path stays at 0. */
 export const flatSequence: TimelineDay[] = [
   { date: '2026-03-01', rating: 'flat' },
   { date: '2026-03-02', rating: 'flat' },
@@ -9,7 +9,7 @@ export const flatSequence: TimelineDay[] = [
   { date: '2026-03-05', rating: 'flat' },
 ]
 
-/** Rising stretch — +45° segments. */
+/** Rising stretch — cumulative climbs by +1/day. */
 export const upSequence: TimelineDay[] = [
   { date: '2026-03-01', rating: 'up' },
   { date: '2026-03-02', rating: 'up' },
@@ -17,7 +17,7 @@ export const upSequence: TimelineDay[] = [
   { date: '2026-03-04', rating: 'up' },
 ]
 
-/** Falling stretch — −45° segments. */
+/** Falling stretch — cumulative drops by −1/day. */
 export const downSequence: TimelineDay[] = [
   { date: '2026-03-01', rating: 'down' },
   { date: '2026-03-02', rating: 'down' },

@@ -1,65 +1,65 @@
-import { buildTimelineGeometry, DEFAULT_STEP } from './geometry'
+import { useMemo } from 'react'
+// ESM entry — CJS `lib/core` default-imports as a module object under Vite and
+// crashes React with "Element type is invalid ... got: object".
+import ReactECharts from 'echarts-for-react/esm/core'
+import { ChartErrorBoundary } from './ChartErrorBoundary'
+import { buildMoodChartModel, DEFAULT_PX_PER_DAY } from './chartOption'
+import echarts from './echarts'
 import type { TimelineDay } from './types'
 import './Timeline.css'
 
 export interface TimelineProps {
   days: readonly TimelineDay[]
-  /** Horizontal pixels (user units) per day segment. */
+  /** Horizontal pixels per calendar day. */
+  pxPerDay?: number
+  /** @deprecated Alias of pxPerDay for older stories. */
   step?: number
   className?: string
   'aria-label'?: string
 }
 
 /**
- * Horizontally scrollable mood timeline polyline.
- * Each day draws an outgoing segment: flat → 0°, up → +45°, down → −45°.
+ * Horizontally scrollable cumulative mood timeline (Apache ECharts).
+ * Daily values: up=+1, flat=0, down=−1; missing days=0; y is running sum from 0.
  */
 export function Timeline({
   days,
-  step = DEFAULT_STEP,
+  pxPerDay,
+  step,
   className,
   'aria-label': ariaLabel = 'Mood timeline',
 }: TimelineProps) {
-  const geometry = buildTimelineGeometry(days, { step })
-  const hasPath = geometry.pathD.length > 0
-
+  const perDay = pxPerDay ?? step ?? DEFAULT_PX_PER_DAY
+  const model = useMemo(
+    () => buildMoodChartModel({ days, pxPerDay: perDay }),
+    [days, perDay],
+  )
+  const hasPath = model.series.length > 0
   const rootClass = ['mm-timeline', className].filter(Boolean).join(' ')
 
   return (
     <div className={rootClass} role="region" aria-label={ariaLabel}>
       <div className="mm-timeline__scroll">
-        {hasPath ? (
-          <svg
-            className="mm-timeline__svg"
-            viewBox={geometry.viewBox}
-            width={geometry.width}
-            height={geometry.height}
-            role="img"
-            aria-label={ariaLabel}
-          >
-            <path
-              className="mm-timeline__line"
-              d={geometry.pathD}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-            {geometry.points.map((p, i) => (
-              <circle
-                key={i === 0 ? 'start' : (days[i - 1]?.date ?? `p-${i}`)}
-                className="mm-timeline__dot"
-                cx={p.x}
-                cy={p.y}
-                r={3.5}
+        <ChartErrorBoundary>
+          {hasPath ? (
+            <div
+              className="mm-timeline__track"
+              style={{ width: model.width, height: model.height }}
+              data-testid="mood-timeline-chart"
+            >
+              <ReactECharts
+                echarts={echarts}
+                option={model.option}
+                style={{ width: model.width, height: model.height }}
+                opts={{ renderer: 'canvas' }}
+                notMerge
+                lazyUpdate
               />
-            ))}
-          </svg>
-        ) : (
-          <p className="mm-timeline__empty">No ratings yet</p>
-        )}
+            </div>
+          ) : (
+            <p className="mm-timeline__empty">No ratings yet</p>
+          )}
+        </ChartErrorBoundary>
       </div>
     </div>
   )

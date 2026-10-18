@@ -45,6 +45,7 @@ describe('events storage', () => {
     const first = createTimelineEvent({
       id: '1',
       label: 'Birthday',
+      description: 'Cake at noon',
       startDate: '2026-03-01',
     })
     const second = createTimelineEvent({
@@ -57,6 +58,7 @@ describe('events storage', () => {
     saveEvents([second, first], storage)
     expect(loadEvents(storage)).toEqual([first, second])
     expect(storage.getItem(EVENTS_STORAGE_KEY)).toContain('Birthday')
+    expect(storage.getItem(EVENTS_STORAGE_KEY)).toContain('Cake at noon')
   })
 
   it('upserts, adds, and deletes by id', () => {

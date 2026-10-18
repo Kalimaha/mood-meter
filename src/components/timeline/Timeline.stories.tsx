@@ -62,6 +62,21 @@ export const HorizontallyScrollable: Story = {
   },
 }
 
+/** Spans March→April so month verticals read `MAR 26` / `APR 26`. */
+export const CrossMonth: Story = {
+  args: {
+    days: [
+      { date: '2026-03-28', rating: 'up' },
+      { date: '2026-03-29', rating: 'up' },
+      { date: '2026-03-30', rating: 'flat' },
+      { date: '2026-03-31', rating: 'down' },
+      { date: '2026-04-01', rating: 'up' },
+      { date: '2026-04-02', rating: 'up' },
+      { date: '2026-04-03', rating: 'flat' },
+    ],
+  },
+}
+
 export const DarkBackground: Story = {
   args: {
     days: mixedSequence,

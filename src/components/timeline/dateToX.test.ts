@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calendarDaysBetween, dateToTimelineX } from './dateToX'
-import { buildTimelineGeometry, DEFAULT_PADDING, DEFAULT_STEP } from './geometry'
+import { DEFAULT_PADDING } from './geometry'
 import type { TimelineDay } from './types'
 
 const days: TimelineDay[] = [
@@ -20,20 +20,26 @@ describe('dateToTimelineX', () => {
     expect(dateToTimelineX([], '2026-03-01')).toBe(DEFAULT_PADDING)
   })
 
-  it('maps a rated day to its end vertex', () => {
-    const geometry = buildTimelineGeometry(days)
-    expect(dateToTimelineX(days, '2026-03-01')).toBe(geometry.points[1]?.x)
-    expect(dateToTimelineX(days, '2026-03-04')).toBe(geometry.points[3]?.x)
-  })
-
-  it('extrapolates before the first day by step', () => {
-    const firstX = dateToTimelineX(days, '2026-03-01')
-    expect(dateToTimelineX(days, '2026-02-28')).toBe(firstX - DEFAULT_STEP)
-  })
-
-  it('interpolates between rated days by calendar', () => {
+  it('maps dates monotonically along the filled series', () => {
+    const x1 = dateToTimelineX(days, '2026-03-01')
     const x2 = dateToTimelineX(days, '2026-03-02')
+    const x3 = dateToTimelineX(days, '2026-03-03')
     const x4 = dateToTimelineX(days, '2026-03-04')
-    expect(dateToTimelineX(days, '2026-03-03')).toBeCloseTo((x2 + x4) / 2)
+    expect(x1).toBeLessThan(x2)
+    expect(x2).toBeLessThan(x3)
+    expect(x3).toBeLessThan(x4)
+  })
+
+  it('clamps before the first day to the first vertex', () => {
+    const firstX = dateToTimelineX(days, '2026-03-01')
+    expect(dateToTimelineX(days, '2026-02-28')).toBe(firstX)
+  })
+
+  it('places a gap day between neighbors', () => {
+    const x2 = dateToTimelineX(days, '2026-03-02')
+    const x3 = dateToTimelineX(days, '2026-03-03')
+    const x4 = dateToTimelineX(days, '2026-03-04')
+    expect(x3).toBeGreaterThan(x2)
+    expect(x3).toBeLessThan(x4)
   })
 })

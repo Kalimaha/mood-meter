@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   compareEventsByStart,
   createTimelineEvent,
+  eventHasDescription,
   eventOverlapsRange,
   eventsInRange,
   isIsoDate,
@@ -61,6 +62,27 @@ describe('validateTimelineEvent / createTimelineEvent', () => {
       startDate: '2026-03-01',
     })
     expect(isSingleDayEvent(event)).toBe(true)
+    expect(eventHasDescription(event)).toBe(false)
+  })
+
+  it('keeps a trimmed description and drops blank ones', () => {
+    const withDesc = createTimelineEvent({
+      id: 'e1d',
+      label: 'Dentist',
+      description: '  Checkup  ',
+      startDate: '2026-03-01',
+    })
+    expect(withDesc.description).toBe('Checkup')
+    expect(eventHasDescription(withDesc)).toBe(true)
+
+    const blank = createTimelineEvent({
+      id: 'e1b',
+      label: 'Lunch',
+      description: '   ',
+      startDate: '2026-03-02',
+    })
+    expect(blank.description).toBeUndefined()
+    expect(eventHasDescription(blank)).toBe(false)
   })
 
   it('creates a range event and treats end===start as single-day', () => {

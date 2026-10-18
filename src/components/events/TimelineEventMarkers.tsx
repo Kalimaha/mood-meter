@@ -1,4 +1,8 @@
-import { isSingleDayEvent } from '../../domain/events'
+import { useEffect, useId, useState } from 'react'
+import {
+  eventHasDescription,
+  isSingleDayEvent,
+} from '../../domain/events'
 import type { TimelineEvent } from '../../domain/types'
 
 export interface TimelineEventMarkersProps {
@@ -9,56 +13,75 @@ export interface TimelineEventMarkersProps {
    * component does not compute mood polyline geometry.
    */
   getXForDate: (isoDate: string) => number
-  /** Height of the marker layer in CSS pixels. */
-  height?: number
   className?: string
   onSelect?: (event: TimelineEvent) => void
 }
 
 /**
- * Props-driven overlay of event pins (single-day) and range bands.
- * Intended to sit above/beside a timeline polyline without owning that line.
+ * Single-day event pins on the timeline track (overlay).
+ * Hollow dots = no description (not clickable for detail).
+ * Filled dots = has description; click reveals it.
+ * Range events are ignored here — bands live in TimelineWithEvents.
  */
 export function TimelineEventMarkers({
   events,
   getXForDate,
-  height = 48,
   className,
   onSelect,
 }: TimelineEventMarkersProps) {
+  const [openId, setOpenId] = useState<string | null>(null)
+  const popoverId = useId()
+  const singles = events.filter(isSingleDayEvent)
+
+  useEffect(() => {
+    if (openId === null) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenId(null)
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (target.closest('[data-mm-event-pin]')) return
+      setOpenId(null)
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('pointerdown', onPointerDown)
+    }
+  }, [openId])
+
   return (
     <div
       className={className}
       role="group"
       aria-label="Timeline event markers"
-      style={{ position: 'relative', height, width: '100%' }}
     >
-      {events.map((event) => {
+      {singles.map((event) => {
         const startX = getXForDate(event.startDate)
-        const endX = getXForDate(event.endDate ?? event.startDate)
-        const left = Math.min(startX, endX)
-        const width = Math.max(Math.abs(endX - startX), 2)
-        const single = isSingleDayEvent(event)
+        const hasDescription = eventHasDescription(event)
+        const isOpen = openId === event.id
+        const description = event.description?.trim() ?? ''
 
-        if (single) {
+        if (!hasDescription) {
           return (
-            <button
+            <span
               key={event.id}
-              type="button"
+              data-mm-event-pin=""
+              data-has-description="false"
               title={event.label}
               aria-label={`${event.label}, ${event.startDate}`}
-              onClick={() => onSelect?.(event)}
-              className="absolute top-1 flex -translate-x-1/2 flex-col items-center gap-0.5 border-0 bg-transparent p-0 text-[var(--mm-accent)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)]"
+              className="mm-event-pin absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
               style={{ left: startX }}
             >
               <span
-                className="block size-2.5 rounded-full bg-[var(--mm-accent)]"
+                className="mm-event-pin__dot mm-event-pin__dot--hollow"
                 aria-hidden="true"
               />
-              <span className="max-w-20 truncate text-[0.65rem] leading-tight text-[var(--mm-fg-muted)]">
-                {event.label}
-              </span>
-            </button>
+            </span>
           )
         }
 
@@ -66,15 +89,32 @@ export function TimelineEventMarkers({
           <button
             key={event.id}
             type="button"
-            title={`${event.label} (${event.startDate} → ${event.endDate})`}
-            aria-label={`${event.label}, ${event.startDate} to ${event.endDate}`}
-            onClick={() => onSelect?.(event)}
-            className="absolute top-2 overflow-hidden rounded-sm border-0 bg-[var(--mm-accent)]/25 px-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)]"
-            style={{ left, width, height: Math.max(height - 16, 20) }}
+            data-mm-event-pin=""
+            data-has-description="true"
+            title={event.label}
+            aria-label={`${event.label}, ${event.startDate}`}
+            aria-expanded={isOpen}
+            aria-controls={isOpen ? `${popoverId}-${event.id}` : undefined}
+            onClick={() => {
+              setOpenId(isOpen ? null : event.id)
+              onSelect?.(event)
+            }}
+            className="mm-event-pin absolute top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)]"
+            style={{ left: startX }}
           >
-            <span className="block truncate text-[0.65rem] font-medium leading-tight text-[var(--mm-fg)]">
-              {event.label}
-            </span>
+            <span
+              className="mm-event-pin__dot mm-event-pin__dot--filled"
+              aria-hidden="true"
+            />
+            {isOpen ? (
+              <span
+                id={`${popoverId}-${event.id}`}
+                role="tooltip"
+                className="mm-event-pin__popover"
+              >
+                {description}
+              </span>
+            ) : null}
           </button>
         )
       })}
