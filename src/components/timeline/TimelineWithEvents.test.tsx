@@ -14,13 +14,14 @@ const days: TimelineDay[] = [
 
 describe('TimelineWithEvents', () => {
   it('renders the polyline for stored days', () => {
-    render(<TimelineWithEvents days={days} />)
+    const { container } = render(<TimelineWithEvents days={days} />)
     expect(
-      screen.getByRole('img', { name: 'Mood timeline' }),
+      screen.getByRole('region', { name: 'Mood timeline' }),
     ).toBeInTheDocument()
+    expect(container.querySelector('svg.mm-timeline__svg')).toBeTruthy()
   })
 
-  it('places filled event pins on the SVG track (not an HTML overlay)', () => {
+  it('places filled/hollow event pins on the SVG track', () => {
     const { container } = render(
       <TimelineWithEvents
         days={days}
@@ -41,15 +42,16 @@ describe('TimelineWithEvents', () => {
     )
 
     const filled = container.querySelector(
-      '[data-testid="event-pin-bday"][data-has-description="true"] .mm-timeline__event-pin--filled',
+      'svg [data-testid="event-pin-bday"].mm-timeline__event-pin--filled',
     )
     const hollow = container.querySelector(
-      '[data-testid="event-pin-empty"][data-has-description="false"] .mm-timeline__event-pin--hollow',
+      'svg [data-testid="event-pin-empty"].mm-timeline__event-pin--hollow',
     )
     expect(filled).toBeTruthy()
     expect(hollow).toBeTruthy()
-    // Pins live inside the timeline SVG
-    expect(container.querySelector('svg [data-testid="event-pin-bday"]')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /Birthday, 2026-03-01/i }),
+    ).toBeInTheDocument()
   })
 
   it('ignores single-day events outside the rated span', () => {

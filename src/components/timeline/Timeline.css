@@ -29,44 +29,64 @@
   max-width: none;
   color: var(--mm-accent);
   overflow: visible;
+  pointer-events: none;
 }
 
 .mm-timeline__event-band {
   fill: var(--mm-accent);
   fill-opacity: 0.22;
-  cursor: pointer;
-  outline: none;
-  pointer-events: all;
 }
 
-.mm-timeline__event-band:focus {
-  fill-opacity: 0.32;
-  stroke: var(--mm-ring);
-  stroke-width: 2;
+.mm-timeline__hits {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.mm-timeline__hit-band {
+  position: absolute;
+  top: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mm-timeline__hit-pin {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mm-timeline__hit-pin--inert {
+  pointer-events: none;
+  width: 12px;
+  height: 12px;
 }
 
 .mm-timeline__line {
   color: inherit;
-  pointer-events: none;
 }
 
 .mm-timeline__dot {
   fill: var(--mm-bg-elevated);
   stroke: var(--mm-accent);
   stroke-width: 2;
-  pointer-events: none;
-}
-
-.mm-timeline__event-hit {
-  cursor: pointer;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .mm-timeline__event-pin {
   stroke: var(--mm-accent);
   stroke-width: 2;
-  pointer-events: none;
 }
 
 .mm-timeline__event-pin--hollow {
@@ -77,7 +97,7 @@
   fill: var(--mm-accent);
 }
 
-/* Portaled to document.body — fixed to viewport at SVG screen coords */
+/* Portaled to document.body — fixed to viewport at click coords */
 .mm-timeline__popover {
   position: fixed;
   z-index: 9999;

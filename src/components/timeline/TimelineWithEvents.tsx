@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { eventHasDescription, isSingleDayEvent } from '../../domain/events'
 import type { TimelineEvent } from '../../domain/types'
@@ -29,9 +29,9 @@ interface OpenPopover {
 }
 
 /**
- * Scrollable mood polyline. Event markers are drawn **in the same SVG**
- * at polyline coordinates (1 CSS px = 1 SVG unit) so they cannot drift
- * off the chart. Popovers portal to document.body so overflow cannot clip them.
+ * Mood polyline in SVG (1 CSS px = 1 SVG unit).
+ * Interactive hit targets are HTML overlays at the same coordinates so
+ * mobile Safari gets reliable taps; popovers portal to document.body.
  */
 export function TimelineWithEvents({
   days,
@@ -44,7 +44,6 @@ export function TimelineWithEvents({
     () => buildTimelineGeometry(days, { step }),
     [days, step],
   )
-  const svgRef = useRef<SVGSVGElement>(null)
 
   const { singleDayEvents, rangeEvents } = useMemo(() => {
     const singles: TimelineEvent[] = []
@@ -81,7 +80,6 @@ export function TimelineWithEvents({
       setPopover(null)
     }
     document.addEventListener('keydown', onKeyDown)
-    // Close on next tick's outside tap — listen in bubble phase after our open handler
     document.addEventListener('pointerdown', onPointerDown)
     return () => {
       document.removeEventListener('keydown', onKeyDown)
@@ -92,47 +90,15 @@ export function TimelineWithEvents({
   const hasPath = geometry.pathD.length > 0
   const rootClass = ['mm-timeline', className].filter(Boolean).join(' ')
 
-  /** Convert SVG user units → viewport CSS px for the portal popover. */
-  const svgToViewport = (x: number, y: number): { left: number; top: number } => {
-    const svg = svgRef.current
-    if (!svg) return { left: 0, top: 0 }
-    // Prefer CTM when available (real browsers); fall back for jsdom tests.
-    if (typeof svg.createSVGPoint === 'function' && svg.getScreenCTM) {
-      const pt = svg.createSVGPoint()
-      pt.x = x
-      pt.y = y
-      const ctm = svg.getScreenCTM()
-      if (ctm) {
-        const screen = pt.matrixTransform(ctm)
-        return { left: screen.x, top: screen.y }
-      }
-    }
-    const rect = svg.getBoundingClientRect()
-    const vb = svg.viewBox.baseVal
-    const vbW = vb.width || geometry.width || 1
-    const vbH = vb.height || geometry.height || 1
-    return {
-      left: rect.left + (x / vbW) * rect.width,
-      top: rect.top + (y / vbH) * rect.height,
-    }
-  }
-
-  const openDetail = (
-    event: TimelineEvent,
-    svgX: number,
-    svgY: number,
-    domEvent?: { stopPropagation: () => void },
-  ) => {
-    domEvent?.stopPropagation()
+  const openDetail = (event: TimelineEvent, clientX: number, clientY: number) => {
     const text = eventHasDescription(event)
       ? event.description!.trim()
       : event.label
-    if (popover?.id === event.id) {
-      setPopover(null)
-      return
-    }
-    const { left, top } = svgToViewport(svgX, svgY)
-    setPopover({ id: event.id, text, left, top })
+    setPopover((prev) =>
+      prev?.id === event.id
+        ? null
+        : { id: event.id, text, left: clientX, top: clientY },
+    )
   }
 
   return (
@@ -146,147 +112,149 @@ export function TimelineWithEvents({
           }}
         >
           {hasPath ? (
-            <svg
-              ref={svgRef}
-              className="mm-timeline__svg"
-              viewBox={geometry.viewBox}
-              width={geometry.width}
-              height={geometry.height}
-              role="img"
-              aria-label={ariaLabel}
-            >
-              {rangeEvents.map((event) => {
-                const start = dateToTimelinePoint(days, event.startDate, {
-                  step,
-                })
-                const end = dateToTimelinePoint(
-                  days,
-                  event.endDate ?? event.startDate,
-                  { step },
-                )
-                const x = Math.min(start.x, end.x)
-                const width = Math.max(Math.abs(end.x - start.x), 8)
-                const midX = x + width / 2
-                const midY = geometry.height / 2
-
-                return (
-                  <g
-                    key={event.id}
-                    data-mm-timeline-hit=""
-                    data-testid={`event-band-${event.id}`}
-                    onPointerUp={(e) => {
-                      e.stopPropagation()
-                      e.preventDefault()
-                      openDetail(event, midX, midY, e)
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
+            <>
+              <svg
+                className="mm-timeline__svg"
+                viewBox={geometry.viewBox}
+                width={geometry.width}
+                height={geometry.height}
+                aria-hidden="true"
+              >
+                {rangeEvents.map((event) => {
+                  const start = dateToTimelinePoint(days, event.startDate, {
+                    step,
+                  })
+                  const end = dateToTimelinePoint(
+                    days,
+                    event.endDate ?? event.startDate,
+                    { step },
+                  )
+                  const x = Math.min(start.x, end.x)
+                  const width = Math.max(Math.abs(end.x - start.x), 8)
+                  return (
                     <rect
+                      key={`band-vis-${event.id}`}
                       className="mm-timeline__event-band"
                       x={x}
                       y={0}
                       width={width}
                       height={geometry.height}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`${event.label}, ${event.startDate} to ${event.endDate}`}
-                      aria-expanded={popover?.id === event.id}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          openDetail(event, midX, midY)
-                        }
-                      }}
+                      pointerEvents="none"
                     />
-                  </g>
-                )
-              })}
-
-              <path
-                className="mm-timeline__line"
-                d={geometry.pathD}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
-              />
-
-              {geometry.points.map((p, i) => (
-                <circle
-                  key={i === 0 ? 'start' : (days[i - 1]?.date ?? `p-${i}`)}
-                  className="mm-timeline__dot"
-                  cx={p.x}
-                  cy={p.y}
-                  r={3.5}
+                  )
+                })}
+                <path
+                  className="mm-timeline__line"
+                  d={geometry.pathD}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
                 />
-              ))}
-
-              {singleDayEvents.map((event) => {
-                const { x, y } = dateToTimelinePoint(days, event.startDate, {
-                  step,
-                })
-                const filled = eventHasDescription(event)
-                const isOpen = popover?.id === event.id
-
-                return (
-                  <g
-                    key={event.id}
-                    data-mm-timeline-hit=""
-                    data-has-description={filled ? 'true' : 'false'}
-                    data-testid={`event-pin-${event.id}`}
-                    transform={`translate(${x} ${y})`}
-                    onPointerUp={
-                      filled
-                        ? (e) => {
-                            e.stopPropagation()
-                            e.preventDefault()
-                            openDetail(event, x, y, e)
-                          }
-                        : undefined
-                    }
-                    style={filled ? { cursor: 'pointer' } : undefined}
-                  >
-                    {/* Nearly-opaque fill so Safari hit-tests; opacity 0 is unreliable */}
+                {geometry.points.map((p, i) => (
+                  <circle
+                    key={i === 0 ? 'start' : (days[i - 1]?.date ?? `p-${i}`)}
+                    className="mm-timeline__dot"
+                    cx={p.x}
+                    cy={p.y}
+                    r={3.5}
+                  />
+                ))}
+                {singleDayEvents.map((event) => {
+                  const { x, y } = dateToTimelinePoint(days, event.startDate, {
+                    step,
+                  })
+                  const filled = eventHasDescription(event)
+                  return (
                     <circle
-                      className="mm-timeline__event-hit"
-                      r={18}
-                      fill="#ffffff"
-                      fillOpacity={0.01}
-                      pointerEvents={filled ? 'all' : 'none'}
-                      role={filled ? 'button' : undefined}
-                      tabIndex={filled ? 0 : undefined}
-                      aria-label={`${event.label}, ${event.startDate}`}
-                      aria-expanded={filled ? isOpen : undefined}
-                      aria-controls={
-                        filled && isOpen ? `${popoverId}-${event.id}` : undefined
-                      }
-                      onKeyDown={
-                        filled
-                          ? (e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault()
-                                openDetail(event, x, y)
-                              }
-                            }
-                          : undefined
-                      }
-                    />
-                    <circle
+                      key={`pin-vis-${event.id}`}
                       className={
                         filled
                           ? 'mm-timeline__event-pin mm-timeline__event-pin--filled'
                           : 'mm-timeline__event-pin mm-timeline__event-pin--hollow'
                       }
+                      cx={x}
+                      cy={y}
                       r={5}
-                      pointerEvents="none"
-                      aria-hidden="true"
+                      data-has-description={filled ? 'true' : 'false'}
+                      data-testid={`event-pin-${event.id}`}
                     />
-                  </g>
-                )
-              })}
-            </svg>
+                  )
+                })}
+              </svg>
+
+              {/* HTML hit layer — same px space as SVG; reliable on iOS Safari */}
+              <div className="mm-timeline__hits" aria-hidden={false}>
+                {rangeEvents.map((event) => {
+                  const start = dateToTimelinePoint(days, event.startDate, {
+                    step,
+                  })
+                  const end = dateToTimelinePoint(
+                    days,
+                    event.endDate ?? event.startDate,
+                    { step },
+                  )
+                  const left = Math.min(start.x, end.x)
+                  const width = Math.max(Math.abs(end.x - start.x), 8)
+                  return (
+                    <button
+                      key={event.id}
+                      type="button"
+                      data-mm-timeline-hit=""
+                      data-testid={`event-band-${event.id}`}
+                      className="mm-timeline__hit-band"
+                      style={{ left, width, height: geometry.height }}
+                      aria-label={`${event.label}, ${event.startDate} to ${event.endDate}`}
+                      aria-expanded={popover?.id === event.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openDetail(event, e.clientX, e.clientY)
+                      }}
+                    />
+                  )
+                })}
+                {singleDayEvents.map((event) => {
+                  const { x, y } = dateToTimelinePoint(days, event.startDate, {
+                    step,
+                  })
+                  const filled = eventHasDescription(event)
+                  if (!filled) {
+                    return (
+                      <span
+                        key={event.id}
+                        data-mm-timeline-hit=""
+                        className="mm-timeline__hit-pin mm-timeline__hit-pin--inert"
+                        style={{ left: x, top: y }}
+                        aria-label={`${event.label}, ${event.startDate}`}
+                      />
+                    )
+                  }
+                  return (
+                    <button
+                      key={event.id}
+                      type="button"
+                      data-mm-timeline-hit=""
+                      data-has-description="true"
+                      className="mm-timeline__hit-pin"
+                      style={{ left: x, top: y }}
+                      aria-label={`${event.label}, ${event.startDate}`}
+                      aria-expanded={popover?.id === event.id}
+                      aria-controls={
+                        popover?.id === event.id
+                          ? `${popoverId}-${event.id}`
+                          : undefined
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openDetail(event, e.clientX, e.clientY)
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            </>
           ) : (
             <p className="mm-timeline__empty">No ratings yet</p>
           )}

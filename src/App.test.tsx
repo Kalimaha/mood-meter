@@ -45,7 +45,6 @@ describe('App composition', () => {
     expect(
       screen.getByRole('region', { name: 'Mood timeline' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Mood timeline' })).toBeInTheDocument()
   })
 
   it('auto-seeds demo moods and events on first empty visit', () => {
