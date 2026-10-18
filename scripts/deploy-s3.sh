@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Deploy the Vite production build to the Mood Meter S3 bucket under dist/.
-# Primary browser URL is the virtual-hosted HTTPS REST object URL (not s3-website-*).
-# Same pattern as wa-critical-infrastructure-map: sync whole dist/ (icons next to index.html).
+# Prefer the CloudFront HTTPS URL once created (see scripts/create-cloudfront.sh).
+# Fallback: virtual-hosted S3 REST HTTPS (same pattern as wa-critical-infrastructure-map).
 # Requires: AWS CLI credentials with s3:PutObject/DeleteObject + s3:PutBucketCors on the bucket.
+# Optional CloudFront invalidate: MOOD_METER_CLOUDFRONT_DISTRIBUTION_ID or scripts/cloudfront.local.env.
 # No secrets live in this repo — use env / IAM / Cursor secrets.
 # pragma: allowlist secret — region default is public infra metadata, not a credential
 set -euo pipefail
@@ -74,8 +75,28 @@ do
 done
 
 echo "Deployed to s3://${BUCKET}/${PREFIX}/"
-echo "Open (use this exact URL for browser + Add to Home Screen):"
-echo "  https://${BUCKET}.s3.${REGION}.amazonaws.com/${PREFIX}/index.html"
-echo "Minimal icon diagnostic page (no React/JS):"
-echo "  https://${BUCKET}.s3.${REGION}.amazonaws.com/${PREFIX}/icon-test.html"
-echo "Do not open .../${PREFIX}/ — S3 HTTPS REST returns AccessDenied for directory URLs."
+
+# Invalidate CloudFront when configured (icon/HTML must not stick on stale edge cache).
+CF_ENV="${MOOD_METER_CF_ENV_FILE:-${ROOT}/scripts/cloudfront.local.env}"
+if [[ -z "${MOOD_METER_CLOUDFRONT_DISTRIBUTION_ID:-}" && -f "$CF_ENV" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$CF_ENV"
+  set +a
+fi
+if [[ -n "${MOOD_METER_CLOUDFRONT_DISTRIBUTION_ID:-}" ]]; then
+  bash "$ROOT/scripts/invalidate-cloudfront.sh" || echo "CloudFront invalidate failed (deploy still on S3)." >&2
+fi
+
+if [[ -n "${MOOD_METER_CLOUDFRONT_DOMAIN:-}" ]]; then
+  echo "Prefer CloudFront HTTPS for Add to Home Screen:"
+  echo "  https://${MOOD_METER_CLOUDFRONT_DOMAIN}/index.html"
+  echo "  https://${MOOD_METER_CLOUDFRONT_DOMAIN}/icon-test.html"
+else
+  echo "Open (S3 REST fallback — iOS may fail Add-to-Home icons on *.amazonaws.com):"
+  echo "  https://${BUCKET}.s3.${REGION}.amazonaws.com/${PREFIX}/index.html"
+  echo "Minimal icon diagnostic page (no React/JS):"
+  echo "  https://${BUCKET}.s3.${REGION}.amazonaws.com/${PREFIX}/icon-test.html"
+  echo "Create CloudFront: ./scripts/create-cloudfront.sh (needs IAM — see iam-cloudfront-policy.json)"
+fi
+echo "Do not open S3 .../${PREFIX}/ — virtual-hosted HTTPS REST returns AccessDenied for directory URLs."

@@ -12,6 +12,7 @@ dist
 dist-ssr
 storybook-static
 *.local
+scripts/cloudfront.local.env
 
 # Editor
 .vscode/*
