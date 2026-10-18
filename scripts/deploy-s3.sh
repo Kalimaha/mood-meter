@@ -21,19 +21,22 @@ cd "$ROOT"
 npm ci
 npm run build
 
-# Hashed assets can be immutable. Icons + HTML + manifest must not — year-long
-# immutable on apple-touch-icon.png previously left devices on stale/missing art → letter “M”.
+# Map deploy is a plain `aws s3 sync dist/ …/dist/ --delete` with no Cache-Control
+# overrides. Hashed assets can still be immutable; HTML/manifest stay must-revalidate.
+# Icons must NOT get Cache-Control (map omits it) — earlier must-revalidate / immutable
+# headers diverged from the working map objects.
 aws s3 sync dist/ "s3://${BUCKET}/${PREFIX}/" --delete --region "$REGION" \
   --exclude index.html \
   --exclude manifest.webmanifest \
   --exclude '*.png' \
   --cache-control "public,max-age=31536000,immutable"
 
+# PNG icons: Content-Type image/png only — no Cache-Control (match map live objects).
+# REPLACE clears any prior Cache-Control metadata left on these keys.
 aws s3 sync dist/ "s3://${BUCKET}/${PREFIX}/" --region "$REGION" \
   --exclude '*' \
   --include '*.png' \
   --content-type "image/png" \
-  --cache-control "public,max-age=0,must-revalidate" \
   --metadata-directive REPLACE
 
 aws s3 cp dist/index.html "s3://${BUCKET}/${PREFIX}/index.html" --region "$REGION" \
@@ -56,10 +59,20 @@ for stale in \
   pwa-192-v3.png \
   pwa-192-v4.png \
   pwa-512-v3.png \
-  pwa-512-v4.png
+  pwa-512-v4.png \
+  sw.js \
+  registerSW.js
 do
   aws s3 rm "s3://${BUCKET}/${PREFIX}/${stale}" --region "$REGION" 2>/dev/null || true
 done
+
+# Workbox leftovers (hashed filenames) if any remain from older vite-plugin-pwa deploys.
+aws s3 ls "s3://${BUCKET}/${PREFIX}/" --region "$REGION" \
+  | awk '{print $4}' \
+  | grep -E '^(sw\.js|registerSW\.js|workbox-.*\.js)$' \
+  | while read -r stale; do
+      aws s3 rm "s3://${BUCKET}/${PREFIX}/${stale}" --region "$REGION" 2>/dev/null || true
+    done
 
 echo "Deployed to s3://${BUCKET}/${PREFIX}/"
 echo "Open (use this exact URL for browser + Add to Home Screen):"
