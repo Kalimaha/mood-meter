@@ -10,9 +10,27 @@
     <meta name="apple-mobile-web-app-title" content="Mood Meter" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- Map-style relative icon (same folder as this HTML under /dist/) -->
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <meta name="description" content="A minimal daily mood journal" />
     <title>Mood Meter</title>
+    <!-- Kill any leftover vite-plugin-pwa SW that may still serve a cached shell/icons -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) {
+            r.unregister()
+          })
+        })
+      }
+      if (window.caches && caches.keys) {
+        caches.keys().then(function (keys) {
+          keys.forEach(function (k) {
+            caches.delete(k)
+          })
+        })
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

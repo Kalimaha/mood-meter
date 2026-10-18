@@ -19,6 +19,7 @@ describe('PWA / home-screen icon pattern (map-style)', () => {
     expect(html).toContain('name="mobile-web-app-capable" content="yes"')
     expect(html).toContain('name="apple-mobile-web-app-title" content="Mood Meter"')
     expect(html).toContain('name="apple-mobile-web-app-status-bar-style" content="default"')
+    expect(html).toContain("serviceWorker")
     expect(html).not.toContain('rel="icon"')
     expect(html).not.toMatch(/apple-touch-icon[^>]+href="\//)
   })
