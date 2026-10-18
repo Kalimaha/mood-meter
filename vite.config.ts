@@ -13,6 +13,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      // Absolute paths from the bucket origin so iOS Add-to-Home-Screen never
+      // opens `/dist/` (S3 HTTPS REST returns AccessDenied for directory URLs).
+      // Keep Vite `base: './'` above for relative asset URLs in the built HTML.
       manifest: {
         name: 'Mood Meter',
         short_name: 'Mood Meter',
@@ -20,17 +23,23 @@ export default defineConfig({
         theme_color: '#0f1419',
         background_color: '#0f1419',
         display: 'standalone',
-        // Must be index.html — S3 REST returns AccessDenied for `/dist/` (no index doc).
-        start_url: './index.html',
-        scope: './',
+        start_url: '/dist/index.html',
+        scope: '/dist/',
         icons: [
           {
+            // Relative to the manifest under /dist/ (or use /dist/favicon.svg).
             src: 'favicon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',
           },
         ],
+      },
+      // Do not register Workbox NavigationRoute — standalone launches must not
+      // network-fetch `/dist/` and surface S3 AccessDenied XML. Precache stays.
+      workbox: {
+        // null (not omit) so Object.assign overrides the plugin default "index.html".
+        navigateFallback: null,
       },
     }),
   ],

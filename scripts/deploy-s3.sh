@@ -23,4 +23,6 @@ npm run build
 aws s3 sync dist/ "s3://${BUCKET}/${PREFIX}/" --delete --region "$REGION"
 
 echo "Deployed to s3://${BUCKET}/${PREFIX}/"
-echo "Open: https://${BUCKET}.s3.${REGION}.amazonaws.com/${PREFIX}/index.html"
+echo "Open (use this exact URL for browser + Add to Home Screen):"
+echo "  https://${BUCKET}.s3.${REGION}.amazonaws.com/${PREFIX}/index.html"
+echo "Do not open .../${PREFIX}/ — S3 HTTPS REST returns AccessDenied for directory URLs."

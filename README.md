@@ -38,6 +38,8 @@ aws s3 sync dist/ s3://mood-meter-507861384016/dist/ --delete
 **Browser URL (HTTPS):** `https://mood-meter-507861384016.s3.<region>.amazonaws.com/dist/index.html`  
 (Same virtual-hosted REST pattern as the WA map app — not CloudFront, not the `s3-website-*` endpoint.)
 
+Use that **`.../dist/index.html`** URL for Add to Home Screen — not `.../dist/` (S3 virtual-hosted HTTPS REST returns AccessDenied for directory URLs; there is no index document). The PWA manifest uses absolute `start_url` `/dist/index.html` and `scope` `/dist/`; Workbox navigation fallback is disabled so the service worker cannot steer navigations to `/dist/`.
+
 DynamoDB table (persistence later): `mood-meter`. CloudFront / custom domain and CI deploy are follow-ups.
 
 ## Repo
