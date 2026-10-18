@@ -49,9 +49,6 @@ export function RatingControls({
             }}
           >
             <Icon className="size-5" aria-hidden="true" />
-            <span aria-hidden="true">
-              {rating === 'up' ? '⬆️' : rating === 'flat' ? '🟰' : '⬇️'}
-            </span>
           </button>
         )
       })}

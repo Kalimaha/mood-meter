@@ -17,3 +17,9 @@ export const Today: Story = {
     date: '2026-10-18',
   },
 }
+
+export const OtherDay: Story = {
+  args: {
+    date: '2026-10-01',
+  },
+}
