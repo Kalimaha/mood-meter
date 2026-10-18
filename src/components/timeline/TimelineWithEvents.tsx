@@ -80,8 +80,12 @@ export function TimelineWithEvents({
       setPopover(null)
     }
     document.addEventListener('keydown', onKeyDown)
-    document.addEventListener('pointerdown', onPointerDown)
+    // Defer so the opening click cannot immediately dismiss the popover.
+    const timer = window.setTimeout(() => {
+      document.addEventListener('pointerdown', onPointerDown)
+    }, 0)
     return () => {
+      window.clearTimeout(timer)
       document.removeEventListener('keydown', onKeyDown)
       document.removeEventListener('pointerdown', onPointerDown)
     }
@@ -210,7 +214,12 @@ export function TimelineWithEvents({
                       aria-expanded={popover?.id === event.id}
                       onClick={(e) => {
                         e.stopPropagation()
-                        openDetail(event, e.clientX, e.clientY)
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        openDetail(
+                          event,
+                          rect.left + rect.width / 2,
+                          rect.top + rect.height / 2,
+                        )
                       }}
                     />
                   )
@@ -248,7 +257,12 @@ export function TimelineWithEvents({
                       }
                       onClick={(e) => {
                         e.stopPropagation()
-                        openDetail(event, e.clientX, e.clientY)
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        openDetail(
+                          event,
+                          rect.left + rect.width / 2,
+                          rect.top,
+                        )
                       }}
                     />
                   )

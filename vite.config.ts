@@ -15,7 +15,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // Unregister any previously installed SW so deploys are not masked by cache.
+      // Manifest + icons still ship for Add to Home Screen.
+      selfDestroying: true,
       includeAssets: [
         'favicon.svg',
         'apple-touch-icon-v3.png',
@@ -23,9 +25,6 @@ export default defineConfig({
         'pwa-512-v3.png',
         'mood-meter-app-icon.jpg',
       ],
-      // Absolute paths from the bucket origin so iOS Add-to-Home-Screen never
-      // opens `/dist/` (S3 HTTPS REST returns AccessDenied for directory URLs).
-      // Keep Vite `base: './'` above for relative asset URLs in the built HTML.
       manifest: {
         name: 'Mood Meter',
         short_name: 'Mood Meter',
@@ -55,12 +54,6 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
-      },
-      // Do not register Workbox NavigationRoute — standalone launches must not
-      // network-fetch `/dist/` and surface S3 AccessDenied XML. Precache stays.
-      workbox: {
-        // null (not omit) so Object.assign overrides the plugin default "index.html".
-        navigateFallback: null,
       },
     }),
   ],
