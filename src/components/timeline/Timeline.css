@@ -1,0 +1,42 @@
+.mm-timeline {
+  width: 100%;
+  color: var(--mm-fg);
+  background: var(--mm-bg-elevated);
+  border: 1px solid var(--mm-border);
+  border-radius: var(--mm-radius);
+  overflow: hidden;
+}
+
+.mm-timeline__scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding: 0.75rem 0.5rem;
+  scrollbar-color: var(--mm-border) transparent;
+}
+
+.mm-timeline__svg {
+  display: block;
+  min-height: 6rem;
+  max-height: 10rem;
+  height: auto;
+  color: var(--mm-accent);
+}
+
+.mm-timeline__line {
+  color: inherit;
+}
+
+.mm-timeline__dot {
+  fill: var(--mm-bg-elevated);
+  stroke: var(--mm-accent);
+  stroke-width: 2;
+}
+
+.mm-timeline__empty {
+  margin: 0;
+  padding: 1.25rem 1rem;
+  font-size: 0.9rem;
+  color: var(--mm-fg-muted);
+}
