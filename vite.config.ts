@@ -12,7 +12,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: [
+        'favicon.svg',
+        'apple-touch-icon.png',
+        'icon-192.png',
+        'icon-512.png',
+        'mood-meter-app-icon.jpg',
+      ],
       // Absolute paths from the bucket origin so iOS Add-to-Home-Screen never
       // opens `/dist/` (S3 HTTPS REST returns AccessDenied for directory URLs).
       // Keep Vite `base: './'` above for relative asset URLs in the built HTML.
@@ -27,11 +33,22 @@ export default defineConfig({
         scope: '/dist/',
         icons: [
           {
-            // Relative to the manifest under /dist/ (or use /dist/favicon.svg).
-            src: 'favicon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
+            src: 'icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },

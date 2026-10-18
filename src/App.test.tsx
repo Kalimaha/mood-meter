@@ -18,19 +18,20 @@ describe('App composition', () => {
     )
   })
 
-  it('renders title, timeline, and day entry', () => {
+  it('renders title, timeline, Event section, and create form', () => {
     render(<App />)
 
     expect(
       screen.getByRole('heading', { name: 'Mood Meter' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Event' })).toBeInTheDocument()
     expect(
-      screen.queryByRole('heading', { name: 'Timeline' }),
-    ).not.toBeInTheDocument()
+      screen.getByRole('button', { name: /create event/i }),
+    ).toBeInTheDocument()
     expect(
-      screen.queryByRole('heading', { name: 'Events' }),
+      screen.queryByRole('heading', { name: 'Today' }),
     ).not.toBeInTheDocument()
+    expect(screen.queryByText(/minimal daily mood journal/i)).not.toBeInTheDocument()
     expect(screen.getByText(/No ratings yet/i)).toBeInTheDocument()
   })
 

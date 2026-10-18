@@ -100,7 +100,7 @@ describe('DayEntryPanel', () => {
     const dateInput = screen.getByLabelText('Date')
     expect(dateInput).toHaveAttribute('type', 'date')
     expect(dateInput).toHaveValue('2026-10-17')
-    expect(screen.getByRole('heading', { name: 'Entry' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Event' })).toBeInTheDocument()
   })
 
   it('calls onDateChange and reloads the entry for the selected date', () => {
@@ -151,7 +151,7 @@ describe('DayEntryPanel', () => {
     fireEvent.change(dateInput, { target: { value: '2026-10-15' } })
 
     expect(dateInput).toHaveValue('2026-10-15')
-    expect(screen.getByRole('heading', { name: 'Entry' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Event' })).toBeInTheDocument()
   })
 
   it('uses this-day copy when confirming overwrite for a non-today date', async () => {

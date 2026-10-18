@@ -125,21 +125,15 @@ export function DayEntryPanel({
           className="m-0 text-lg font-semibold"
           style={{ color: 'var(--mm-fg)' }}
         >
-          {isToday ? 'Today' : 'Entry'}
+          Event
         </h2>
         <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor={dateInputId}
-            className="text-sm"
-            style={{ color: 'var(--mm-fg-muted)' }}
-          >
-            Date
-          </label>
           <input
             id={dateInputId}
             type="date"
             value={date}
             onChange={(e) => handleDateInputChange(e.target.value)}
+            aria-label="Date"
             className="min-h-11 rounded-[var(--mm-radius)] border px-3 py-2 text-sm"
             style={{
               borderColor: 'var(--mm-border)',

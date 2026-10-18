@@ -13,22 +13,19 @@ export interface TimelineEventMarkersProps {
    * component does not compute mood polyline geometry.
    */
   getXForDate: (isoDate: string) => number
-  /** Height of the marker layer in CSS pixels (used for vertical centering). */
-  height?: number
   className?: string
   onSelect?: (event: TimelineEvent) => void
 }
 
 /**
- * Single-day event pins on the timeline.
- * Hollow dots = no description; filled = has description.
- * Labels/descriptions appear only in a click popover (not always under the dot).
- * Range events are ignored here — full-height bands live in TimelineWithEvents.
+ * Single-day event pins on the timeline track (overlay).
+ * Hollow dots = no description (not clickable for detail).
+ * Filled dots = has description; click reveals it.
+ * Range events are ignored here — bands live in TimelineWithEvents.
  */
 export function TimelineEventMarkers({
   events,
   getXForDate,
-  height = 48,
   className,
   onSelect,
 }: TimelineEventMarkersProps) {
@@ -62,22 +59,38 @@ export function TimelineEventMarkers({
       className={className}
       role="group"
       aria-label="Timeline event markers"
-      style={{ position: 'relative', height, width: '100%' }}
     >
       {singles.map((event) => {
         const startX = getXForDate(event.startDate)
         const hasDescription = eventHasDescription(event)
         const isOpen = openId === event.id
-        const detail = hasDescription
-          ? event.description!.trim()
-          : event.label
+        const description = event.description?.trim() ?? ''
+
+        if (!hasDescription) {
+          return (
+            <span
+              key={event.id}
+              data-mm-event-pin=""
+              data-has-description="false"
+              title={event.label}
+              aria-label={`${event.label}, ${event.startDate}`}
+              className="mm-event-pin absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{ left: startX }}
+            >
+              <span
+                className="mm-event-pin__dot mm-event-pin__dot--hollow"
+                aria-hidden="true"
+              />
+            </span>
+          )
+        }
 
         return (
           <button
             key={event.id}
             type="button"
             data-mm-event-pin=""
-            data-has-description={hasDescription ? 'true' : 'false'}
+            data-has-description="true"
             title={event.label}
             aria-label={`${event.label}, ${event.startDate}`}
             aria-expanded={isOpen}
@@ -90,11 +103,7 @@ export function TimelineEventMarkers({
             style={{ left: startX }}
           >
             <span
-              className={
-                hasDescription
-                  ? 'mm-event-pin__dot mm-event-pin__dot--filled'
-                  : 'mm-event-pin__dot mm-event-pin__dot--hollow'
-              }
+              className="mm-event-pin__dot mm-event-pin__dot--filled"
               aria-hidden="true"
             />
             {isOpen ? (
@@ -103,7 +112,7 @@ export function TimelineEventMarkers({
                 role="tooltip"
                 className="mm-event-pin__popover"
               >
-                {detail}
+                {description}
               </span>
             ) : null}
           </button>

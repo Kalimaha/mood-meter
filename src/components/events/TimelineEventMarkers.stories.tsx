@@ -39,7 +39,6 @@ const meta = {
   args: {
     events,
     getXForDate,
-    height: 64,
     onSelect: fn(),
   },
   decorators: [

@@ -36,14 +36,11 @@ describe('TimelineEventMarkers', () => {
     expect(
       screen.getByRole('button', { name: /Launch, 2026-04-02/i }),
     ).toBeInTheDocument()
+    // Hollow (no description) is not a button
     expect(
-      screen.getByRole('button', { name: /Move, 2026-04-04/i }),
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', {
-        name: /Review, 2026-04-01 to 2026-04-05/i,
-      }),
+      screen.queryByRole('button', { name: /Move, 2026-04-04/i }),
     ).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/Move, 2026-04-04/i)).toBeInTheDocument()
     expect(screen.queryByText('Launch')).not.toBeInTheDocument()
     expect(screen.queryByText('Move')).not.toBeInTheDocument()
   })
@@ -53,14 +50,18 @@ describe('TimelineEventMarkers', () => {
       <TimelineEventMarkers events={events} getXForDate={getXForDate} />,
     )
     expect(
-      container.querySelector('[data-has-description="true"] .mm-event-pin__dot--filled'),
+      container.querySelector(
+        '[data-has-description="true"] .mm-event-pin__dot--filled',
+      ),
     ).toBeTruthy()
     expect(
-      container.querySelector('[data-has-description="false"] .mm-event-pin__dot--hollow'),
+      container.querySelector(
+        '[data-has-description="false"] .mm-event-pin__dot--hollow',
+      ),
     ).toBeTruthy()
   })
 
-  it('reveals description or label only after click', async () => {
+  it('reveals description only when clicking a filled dot', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
     render(
@@ -74,9 +75,5 @@ describe('TimelineEventMarkers', () => {
     await user.click(screen.getByRole('button', { name: /Launch/i }))
     expect(onSelect).toHaveBeenCalledWith(events[0])
     expect(screen.getByRole('tooltip')).toHaveTextContent('Shipped v1 to prod')
-
-    await user.click(screen.getByRole('button', { name: /Move/i }))
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Move')
-    expect(screen.queryByText('Shipped v1 to prod')).not.toBeInTheDocument()
   })
 })

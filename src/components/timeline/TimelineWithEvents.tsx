@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { isSingleDayEvent } from '../../domain/events'
+import { useEffect, useId, useMemo, useState } from 'react'
+import { eventHasDescription, isSingleDayEvent } from '../../domain/events'
 import type { TimelineEvent } from '../../domain/types'
 import { TimelineEventMarkers } from '../events/TimelineEventMarkers'
 import { dateToTimelineX } from './dateToX'
@@ -19,12 +19,16 @@ export interface TimelineWithEventsProps {
   'aria-label'?: string
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
 /**
  * Scrollable mood polyline with optional event markers in the same
  * horizontal coordinate space.
  *
- * Range events draw semi-transparent full-height bands behind the path.
- * Single-day events are hollow/filled dots with click-to-reveal detail.
+ * Range events: full-height clickable bands (description on click).
+ * Single-day: hollow/filled dots on the track; filled opens description.
  */
 export function TimelineWithEvents({
   days,
@@ -48,31 +52,43 @@ export function TimelineWithEvents({
     return { singleDayEvents: singles, rangeEvents: ranges }
   }, [events])
 
-  const markerWidth = useMemo(() => {
-    if (events.length === 0) return geometry.width
-    let maxX = geometry.width
-    for (const event of events) {
-      maxX = Math.max(
-        maxX,
-        dateToTimelineX(days, event.startDate, { step }) + DEFAULT_PADDING,
-        dateToTimelineX(days, event.endDate ?? event.startDate, { step }) +
-          DEFAULT_PADDING,
-      )
-    }
-    return maxX
-  }, [days, events, geometry.width, step])
+  const xMin = DEFAULT_PADDING
+  const xMax = Math.max(geometry.width - DEFAULT_PADDING, xMin)
 
   const getXForDate = (isoDate: string) =>
-    dateToTimelineX(days, isoDate, { step })
+    clamp(dateToTimelineX(days, isoDate, { step }), xMin, xMax)
+
+  const [openRangeId, setOpenRangeId] = useState<string | null>(null)
+  const rangePopoverId = useId()
+
+  useEffect(() => {
+    if (openRangeId === null) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenRangeId(null)
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (target.closest('[data-mm-event-band]')) return
+      setOpenRangeId(null)
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('pointerdown', onPointerDown)
+    }
+  }, [openRangeId])
 
   const hasPath = geometry.pathD.length > 0
   const rootClass = ['mm-timeline', className].filter(Boolean).join(' ')
-  const trackWidth = Math.max(markerWidth, geometry.width)
 
   return (
     <div className={rootClass} role="region" aria-label={ariaLabel}>
       <div className="mm-timeline__scroll">
-        <div className="mm-timeline__track" style={{ width: trackWidth }}>
+        <div className="mm-timeline__track" style={{ width: geometry.width }}>
           {hasPath ? (
             <svg
               className="mm-timeline__svg"
@@ -82,34 +98,6 @@ export function TimelineWithEvents({
               role="img"
               aria-label={ariaLabel}
             >
-              {rangeEvents.map((event) => {
-                const startX = dateToTimelineX(days, event.startDate, { step })
-                const endX = dateToTimelineX(
-                  days,
-                  event.endDate ?? event.startDate,
-                  { step },
-                )
-                const x = Math.min(startX, endX)
-                const width = Math.max(Math.abs(endX - startX), 2)
-                const title = event.description?.trim()
-                  ? `${event.label}: ${event.description.trim()}`
-                  : `${event.label} (${event.startDate} → ${event.endDate})`
-
-                return (
-                  <rect
-                    key={event.id}
-                    className="mm-timeline__event-band"
-                    x={x}
-                    y={0}
-                    width={width}
-                    height={geometry.height}
-                    data-event-id={event.id}
-                    data-testid={`event-band-${event.id}`}
-                  >
-                    <title>{title}</title>
-                  </rect>
-                )
-              })}
               <path
                 className="mm-timeline__line"
                 d={geometry.pathD}
@@ -134,11 +122,55 @@ export function TimelineWithEvents({
             <p className="mm-timeline__empty">No ratings yet</p>
           )}
 
+          {hasPath && rangeEvents.length > 0 ? (
+            <div className="mm-timeline__bands" aria-hidden={false}>
+              {rangeEvents.map((event) => {
+                const startX = getXForDate(event.startDate)
+                const endX = getXForDate(event.endDate ?? event.startDate)
+                const left = Math.min(startX, endX)
+                const width = Math.max(Math.abs(endX - startX), 2)
+                const isOpen = openRangeId === event.id
+                const detail = eventHasDescription(event)
+                  ? event.description!.trim()
+                  : event.label
+
+                return (
+                  <button
+                    key={event.id}
+                    type="button"
+                    data-mm-event-band=""
+                    data-testid={`event-band-${event.id}`}
+                    title={event.label}
+                    aria-label={`${event.label}, ${event.startDate} to ${event.endDate}`}
+                    aria-expanded={isOpen}
+                    aria-controls={
+                      isOpen ? `${rangePopoverId}-${event.id}` : undefined
+                    }
+                    onClick={() => {
+                      setOpenRangeId(isOpen ? null : event.id)
+                    }}
+                    className="mm-timeline__event-band"
+                    style={{ left, width }}
+                  >
+                    {isOpen ? (
+                      <span
+                        id={`${rangePopoverId}-${event.id}`}
+                        role="tooltip"
+                        className="mm-event-pin__popover mm-timeline__band-popover"
+                      >
+                        {detail}
+                      </span>
+                    ) : null}
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
+
           {singleDayEvents.length > 0 ? (
             <TimelineEventMarkers
               events={singleDayEvents}
               getXForDate={getXForDate}
-              height={hasPath ? geometry.height : 48}
               className="mm-timeline__markers"
             />
           ) : null}

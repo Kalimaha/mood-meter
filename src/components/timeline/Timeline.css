@@ -21,7 +21,8 @@
   min-width: 100%;
 }
 
-.mm-timeline__markers {
+.mm-timeline__markers,
+.mm-timeline__bands {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -29,7 +30,8 @@
   pointer-events: none;
 }
 
-.mm-timeline__markers .mm-event-pin {
+.mm-timeline__markers .mm-event-pin,
+.mm-timeline__bands .mm-timeline__event-band {
   pointer-events: auto;
 }
 
@@ -42,9 +44,25 @@
 }
 
 .mm-timeline__event-band {
-  fill: var(--mm-accent);
-  fill-opacity: 0.16;
-  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--mm-accent) 16%, transparent);
+  cursor: pointer;
+  outline: none;
+}
+
+.mm-timeline__event-band:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--mm-ring);
+}
+
+.mm-timeline__band-popover {
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .mm-timeline__line {

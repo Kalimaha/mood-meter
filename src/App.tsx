@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react'
+import { EventForm } from './components/events'
 import { TimelineWithEvents } from './components/timeline'
 import { DayEntryPanel } from './components/rating/DayEntryPanel'
 import { todayIso } from './domain/dates'
+import type { CreateTimelineEventInput } from './domain/events'
 import type { TimelineEvent } from './domain/types'
 import { loadDayEntries } from './storage/days'
-import { loadEvents } from './storage/events'
+import { addEvent, loadEvents } from './storage/events'
 import { ensureDemoSeed } from './storage/seed'
 import { dayEntriesToTimelineDays } from './storage/timelineDays'
 import type { TimelineDay } from './components/timeline'
@@ -14,11 +16,15 @@ function App() {
     ensureDemoSeed()
     return dayEntriesToTimelineDays(loadDayEntries())
   })
-  const [events] = useState<TimelineEvent[]>(() => loadEvents())
+  const [events, setEvents] = useState<TimelineEvent[]>(() => loadEvents())
   const [selectedDate, setSelectedDate] = useState(todayIso)
 
   const refreshDays = useCallback(() => {
     setDays(dayEntriesToTimelineDays(loadDayEntries()))
+  }, [])
+
+  const handleCreateEvent = useCallback((input: CreateTimelineEventInput) => {
+    setEvents(addEvent(input))
   }, [])
 
   return (
@@ -35,10 +41,10 @@ function App() {
           onChange={refreshDays}
         />
 
-        <p className="app-lede">
-          A minimal daily mood journal. Rate each day, optionally note why, and
-          watch the path over time.
-        </p>
+        <EventForm
+          onSubmit={handleCreateEvent}
+          defaultStartDate={selectedDate}
+        />
       </main>
     </div>
   )
