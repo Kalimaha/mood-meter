@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
-import ReactECharts from 'echarts-for-react/lib/core'
+// ESM entry — CJS `lib/core` default-imports as a module object under Vite and
+// crashes React with "Element type is invalid ... got: object".
+import ReactECharts from 'echarts-for-react/esm/core'
+import { ChartErrorBoundary } from './ChartErrorBoundary'
 import { buildMoodChartModel, DEFAULT_PX_PER_DAY } from './chartOption'
 import echarts from './echarts'
 import type { TimelineDay } from './types'
@@ -37,24 +40,26 @@ export function Timeline({
   return (
     <div className={rootClass} role="region" aria-label={ariaLabel}>
       <div className="mm-timeline__scroll">
-        {hasPath ? (
-          <div
-            className="mm-timeline__track"
-            style={{ width: model.width, height: model.height }}
-            data-testid="mood-timeline-chart"
-          >
-            <ReactECharts
-              echarts={echarts}
-              option={model.option}
+        <ChartErrorBoundary>
+          {hasPath ? (
+            <div
+              className="mm-timeline__track"
               style={{ width: model.width, height: model.height }}
-              opts={{ renderer: 'canvas' }}
-              notMerge
-              lazyUpdate
-            />
-          </div>
-        ) : (
-          <p className="mm-timeline__empty">No ratings yet</p>
-        )}
+              data-testid="mood-timeline-chart"
+            >
+              <ReactECharts
+                echarts={echarts}
+                option={model.option}
+                style={{ width: model.width, height: model.height }}
+                opts={{ renderer: 'canvas' }}
+                notMerge
+                lazyUpdate
+              />
+            </div>
+          ) : (
+            <p className="mm-timeline__empty">No ratings yet</p>
+          )}
+        </ChartErrorBoundary>
       </div>
     </div>
   )

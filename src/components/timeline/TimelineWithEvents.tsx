@@ -1,8 +1,11 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import ReactECharts from 'echarts-for-react/lib/core'
+// ESM entry — CJS `lib/core` default-imports as a module object under Vite and
+// crashes React with "Element type is invalid ... got: object".
+import ReactECharts from 'echarts-for-react/esm/core'
 import { eventHasDescription, isSingleDayEvent } from '../../domain/events'
 import type { TimelineEvent } from '../../domain/types'
+import { ChartErrorBoundary } from './ChartErrorBoundary'
 import { buildMoodChartModel, DEFAULT_PX_PER_DAY } from './chartOption'
 import echarts from './echarts'
 import { dateToChartPoint } from './geometry'
@@ -122,119 +125,121 @@ export function TimelineWithEvents({
   return (
     <div className={rootClass} role="region" aria-label={ariaLabel}>
       <div className="mm-timeline__scroll">
-        <div
-          className="mm-timeline__track"
-          style={{
-            width: model.width,
-            height: hasPath ? model.height : undefined,
-          }}
-        >
-          {hasPath ? (
-            <>
-              <div
-                className="mm-timeline__chart"
-                data-testid="mood-timeline-chart"
-                aria-hidden="true"
-              >
-                <ReactECharts
-                  echarts={echarts}
-                  option={model.option}
-                  style={{ width: model.width, height: model.height }}
-                  opts={{ renderer: 'canvas' }}
-                  notMerge
-                  lazyUpdate
-                />
-              </div>
+        <ChartErrorBoundary>
+          <div
+            className="mm-timeline__track"
+            style={{
+              width: model.width,
+              height: hasPath ? model.height : undefined,
+            }}
+          >
+            {hasPath ? (
+              <>
+                <div
+                  className="mm-timeline__chart"
+                  data-testid="mood-timeline-chart"
+                  aria-hidden="true"
+                >
+                  <ReactECharts
+                    echarts={echarts}
+                    option={model.option}
+                    style={{ width: model.width, height: model.height }}
+                    opts={{ renderer: 'canvas' }}
+                    notMerge
+                    lazyUpdate
+                  />
+                </div>
 
-              <div className="mm-timeline__hits" aria-hidden={false}>
-                {rangeEvents.map((event) => {
-                  const start = dateToChartPoint(
-                    model.series,
-                    event.startDate,
-                    layout,
-                  )
-                  const end = dateToChartPoint(
-                    model.series,
-                    event.endDate ?? event.startDate,
-                    layout,
-                  )
-                  const left = Math.min(start.x, end.x)
-                  const width = Math.max(Math.abs(end.x - start.x), 8)
-                  return (
-                    <button
-                      key={event.id}
-                      type="button"
-                      data-mm-timeline-hit=""
-                      data-testid={`event-band-${event.id}`}
-                      className="mm-timeline__hit-band"
-                      style={{ left, width, height: model.height }}
-                      aria-label={`${event.label}, ${event.startDate} to ${event.endDate}`}
-                      aria-expanded={popover?.id === event.id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        const rect = e.currentTarget.getBoundingClientRect()
-                        openDetail(
-                          event,
-                          rect.left + rect.width / 2,
-                          rect.top + rect.height / 2,
-                        )
-                      }}
-                    />
-                  )
-                })}
-                {singleDayEvents.map((event) => {
-                  const { x, y } = dateToChartPoint(
-                    model.series,
-                    event.startDate,
-                    layout,
-                  )
-                  const filled = eventHasDescription(event)
-                  if (!filled) {
+                <div className="mm-timeline__hits" aria-hidden={false}>
+                  {rangeEvents.map((event) => {
+                    const start = dateToChartPoint(
+                      model.series,
+                      event.startDate,
+                      layout,
+                    )
+                    const end = dateToChartPoint(
+                      model.series,
+                      event.endDate ?? event.startDate,
+                      layout,
+                    )
+                    const left = Math.min(start.x, end.x)
+                    const width = Math.max(Math.abs(end.x - start.x), 8)
                     return (
-                      <span
+                      <button
                         key={event.id}
+                        type="button"
                         data-mm-timeline-hit=""
-                        data-testid={`event-pin-${event.id}`}
-                        className="mm-timeline__hit-pin mm-timeline__hit-pin--inert"
-                        style={{ left: x, top: y }}
-                        aria-label={`${event.label}, ${event.startDate}`}
+                        data-testid={`event-band-${event.id}`}
+                        className="mm-timeline__hit-band"
+                        style={{ left, width, height: model.height }}
+                        aria-label={`${event.label}, ${event.startDate} to ${event.endDate}`}
+                        aria-expanded={popover?.id === event.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          openDetail(
+                            event,
+                            rect.left + rect.width / 2,
+                            rect.top + rect.height / 2,
+                          )
+                        }}
                       />
                     )
-                  }
-                  return (
-                    <button
-                      key={event.id}
-                      type="button"
-                      data-mm-timeline-hit=""
-                      data-has-description="true"
-                      data-testid={`event-pin-${event.id}`}
-                      className="mm-timeline__hit-pin"
-                      style={{ left: x, top: y }}
-                      aria-label={`${event.label}, ${event.startDate}`}
-                      aria-expanded={popover?.id === event.id}
-                      aria-controls={
-                        popover?.id === event.id
-                          ? `${popoverId}-${event.id}`
-                          : undefined
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        const rect = e.currentTarget.getBoundingClientRect()
-                        openDetail(
-                          event,
-                          rect.left + rect.width / 2,
-                          rect.top,
-                        )
-                      }}
-                    />
-                  )
-                })}
-              </div>
-            </>
-          ) : (
-            <p className="mm-timeline__empty">No ratings yet</p>
-          )}
-        </div>
+                  })}
+                  {singleDayEvents.map((event) => {
+                    const { x, y } = dateToChartPoint(
+                      model.series,
+                      event.startDate,
+                      layout,
+                    )
+                    const filled = eventHasDescription(event)
+                    if (!filled) {
+                      return (
+                        <span
+                          key={event.id}
+                          data-mm-timeline-hit=""
+                          data-testid={`event-pin-${event.id}`}
+                          className="mm-timeline__hit-pin mm-timeline__hit-pin--inert"
+                          style={{ left: x, top: y }}
+                          aria-label={`${event.label}, ${event.startDate}`}
+                        />
+                      )
+                    }
+                    return (
+                      <button
+                        key={event.id}
+                        type="button"
+                        data-mm-timeline-hit=""
+                        data-has-description="true"
+                        data-testid={`event-pin-${event.id}`}
+                        className="mm-timeline__hit-pin"
+                        style={{ left: x, top: y }}
+                        aria-label={`${event.label}, ${event.startDate}`}
+                        aria-expanded={popover?.id === event.id}
+                        aria-controls={
+                          popover?.id === event.id
+                            ? `${popoverId}-${event.id}`
+                            : undefined
+                        }
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          openDetail(
+                            event,
+                            rect.left + rect.width / 2,
+                            rect.top,
+                          )
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="mm-timeline__empty">No ratings yet</p>
+            )}
+          </div>
+        </ChartErrorBoundary>
       </div>
 
       {popover

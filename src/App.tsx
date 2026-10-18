@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { EventForm } from './components/events'
 import { TimelineWithEvents } from './components/timeline'
+import { ChartErrorBoundary } from './components/timeline/ChartErrorBoundary'
 import { DayEntryPanel } from './components/rating/DayEntryPanel'
 import { todayIso } from './domain/dates'
 import type { CreateTimelineEventInput } from './domain/events'
@@ -33,7 +34,9 @@ function App() {
         <h1 className="app-title">Mood Meter</h1>
       </header>
       <main className="app-main">
-        <TimelineWithEvents days={days} events={events} />
+        <ChartErrorBoundary>
+          <TimelineWithEvents days={days} events={events} />
+        </ChartErrorBoundary>
 
         <DayEntryPanel
           date={selectedDate}
