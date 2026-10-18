@@ -23,6 +23,12 @@ function isTimelineEvent(value: unknown): value is TimelineEvent {
   if (typeof record.label !== 'string') return false
   if (typeof record.startDate !== 'string') return false
   if (
+    record.description !== undefined &&
+    typeof record.description !== 'string'
+  ) {
+    return false
+  }
+  if (
     record.endDate !== undefined &&
     typeof record.endDate !== 'string'
   ) {
@@ -33,6 +39,9 @@ function isTimelineEvent(value: unknown): value is TimelineEvent {
       id: record.id,
       label: record.label,
       startDate: record.startDate,
+      ...(typeof record.description === 'string'
+        ? { description: record.description }
+        : {}),
       ...(typeof record.endDate === 'string'
         ? { endDate: record.endDate }
         : {}),
@@ -60,6 +69,9 @@ function parseEvents(raw: string | null): TimelineEvent[] {
           id: item.id,
           label: item.label,
           startDate: item.startDate,
+          ...(item.description !== undefined
+            ? { description: item.description }
+            : {}),
           ...(item.endDate !== undefined ? { endDate: item.endDate } : {}),
         }),
       )

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { todayIso } from '../domain/dates'
-import { isSingleDayEvent } from '../domain/events'
+import { eventHasDescription, isSingleDayEvent } from '../domain/events'
 import { loadDayEntries } from './days'
 import { loadEvents } from './events'
 import {
@@ -36,6 +36,12 @@ describe('demo seed', () => {
     expect(singles).toHaveLength(3)
     expect(ranges).toHaveLength(2)
     expect(ranges.every((e) => e.endDate! > e.startDate)).toBe(true)
+
+    const singlesWithDesc = singles.filter(eventHasDescription)
+    const singlesWithoutDesc = singles.filter((e) => !eventHasDescription(e))
+    expect(singlesWithDesc.length).toBeGreaterThanOrEqual(1)
+    expect(singlesWithoutDesc.length).toBeGreaterThanOrEqual(1)
+    expect(ranges.some(eventHasDescription)).toBe(true)
   })
 
   it('applies once when storage is empty', () => {

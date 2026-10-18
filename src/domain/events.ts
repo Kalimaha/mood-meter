@@ -4,6 +4,8 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
 export interface CreateTimelineEventInput {
   label: string
+  /** Optional; blank/whitespace is omitted from the stored event. */
+  description?: string
   startDate: string
   endDate?: string
   id?: string
@@ -30,6 +32,13 @@ export function isIsoDate(value: string): boolean {
 /** Single-day events have no end, or end equal to start. */
 export function isSingleDayEvent(event: TimelineEvent): boolean {
   return event.endDate === undefined || event.endDate === event.startDate
+}
+
+/** True when the event has a non-empty trimmed description. */
+export function eventHasDescription(event: TimelineEvent): boolean {
+  return (
+    event.description !== undefined && event.description.trim().length > 0
+  )
 }
 
 export function validateTimelineEvent(
@@ -64,6 +73,8 @@ export function createTimelineEvent(
   }
 
   const label = input.label.trim()
+  const description =
+    input.description !== undefined ? input.description.trim() : ''
   const startDate = input.startDate
   const endDate =
     input.endDate !== undefined && input.endDate !== startDate
@@ -74,6 +85,10 @@ export function createTimelineEvent(
     id: input.id ?? newEventId(),
     label,
     startDate,
+  }
+
+  if (description.length > 0) {
+    event.description = description
   }
 
   if (endDate !== undefined) {

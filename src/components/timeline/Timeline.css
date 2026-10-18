@@ -17,11 +17,20 @@
 }
 
 .mm-timeline__track {
+  position: relative;
   min-width: 100%;
 }
 
 .mm-timeline__markers {
-  margin-bottom: 0.25rem;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  pointer-events: none;
+}
+
+.mm-timeline__markers .mm-event-pin {
+  pointer-events: auto;
 }
 
 .mm-timeline__svg {
@@ -32,6 +41,12 @@
   color: var(--mm-accent);
 }
 
+.mm-timeline__event-band {
+  fill: var(--mm-accent);
+  fill-opacity: 0.16;
+  pointer-events: none;
+}
+
 .mm-timeline__line {
   color: inherit;
 }
@@ -40,6 +55,42 @@
   fill: var(--mm-bg-elevated);
   stroke: var(--mm-accent);
   stroke-width: 2;
+}
+
+.mm-event-pin__dot {
+  display: block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  border: 2px solid var(--mm-accent);
+  box-sizing: border-box;
+}
+
+.mm-event-pin__dot--hollow {
+  background: transparent;
+}
+
+.mm-event-pin__dot--filled {
+  background: var(--mm-accent);
+}
+
+.mm-event-pin__popover {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 50%;
+  z-index: 2;
+  max-width: 12rem;
+  padding: 0.35rem 0.5rem;
+  transform: translateX(-50%);
+  border: 1px solid var(--mm-border);
+  border-radius: calc(var(--mm-radius) * 0.75);
+  background: var(--mm-bg-elevated);
+  color: var(--mm-fg);
+  font-size: 0.7rem;
+  line-height: 1.3;
+  text-align: center;
+  white-space: normal;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--mm-fg) 12%, transparent);
 }
 
 .mm-timeline__empty {

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { fn } from 'storybook/test'
 import type { TimelineEvent } from '../../domain/types'
 import { TimelineEventMarkers } from './TimelineEventMarkers'
+import '../timeline/Timeline.css'
 
 const DAY_MS = 86_400_000
 const ORIGIN = '2026-04-01'
@@ -14,14 +15,19 @@ function getXForDate(iso: string): number {
 }
 
 const events: TimelineEvent[] = [
-  { id: 'pin', label: 'Launch', startDate: '2026-04-03' },
   {
-    id: 'band',
-    label: 'Review',
-    startDate: '2026-04-01',
-    endDate: '2026-04-05',
+    id: 'pin',
+    label: 'Launch',
+    description: 'Shipped v1 to prod',
+    startDate: '2026-04-03',
   },
   { id: 'move', label: 'Move', startDate: '2026-04-07' },
+  {
+    id: 'concert',
+    label: 'Concert',
+    description: 'Indie night at The Forum',
+    startDate: '2026-04-05',
+  },
 ]
 
 const meta = {
@@ -33,7 +39,7 @@ const meta = {
   args: {
     events,
     getXForDate,
-    height: 56,
+    height: 64,
     onSelect: fn(),
   },
   decorators: [
@@ -43,17 +49,16 @@ const meta = {
         style={{ background: 'var(--mm-bg-elevated)', width: 420 }}
       >
         <p className="m-0 mb-2 text-xs text-[var(--mm-fg-muted)]">
-          Placeholder timeline track (polyline owned elsewhere)
+          Click dots for detail (filled = has description, hollow = label only)
         </p>
         <div
-          className="relative mb-1 h-16 rounded-sm"
+          className="relative h-16 rounded-sm"
           style={{
             width: DAY_WIDTH * 10,
             background:
               'linear-gradient(90deg, transparent 47%, var(--mm-border) 49%, var(--mm-border) 51%, transparent 53%)',
             backgroundSize: `${DAY_WIDTH}px 100%`,
           }}
-          aria-hidden="true"
         >
           <svg
             width={DAY_WIDTH * 10}
@@ -68,9 +73,9 @@ const meta = {
               points={`24,40 ${24 + DAY_WIDTH},24 ${24 + DAY_WIDTH * 2},40 ${24 + DAY_WIDTH * 3},56 ${24 + DAY_WIDTH * 4},40 ${24 + DAY_WIDTH * 5},24`}
             />
           </svg>
-        </div>
-        <div style={{ width: DAY_WIDTH * 10 }}>
-          <Story />
+          <div className="mm-timeline__markers" style={{ width: DAY_WIDTH * 10 }}>
+            <Story />
+          </div>
         </div>
       </div>
     ),
@@ -82,11 +87,30 @@ type Story = StoryObj<typeof meta>
 
 export const Mixed: Story = {}
 
-export const PinsOnly: Story = {
+export const HollowOnly: Story = {
   args: {
     events: [
       { id: 'a', label: 'A', startDate: '2026-04-02' },
       { id: 'b', label: 'B', startDate: '2026-04-06' },
+    ],
+  },
+}
+
+export const FilledOnly: Story = {
+  args: {
+    events: [
+      {
+        id: 'a',
+        label: 'A',
+        description: 'Detail for A',
+        startDate: '2026-04-02',
+      },
+      {
+        id: 'b',
+        label: 'B',
+        description: 'Detail for B',
+        startDate: '2026-04-06',
+      },
     ],
   },
 }

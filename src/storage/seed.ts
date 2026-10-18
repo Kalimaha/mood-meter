@@ -83,6 +83,7 @@ export function buildDemoEvents(todayIso: string = toIsoDate()): TimelineEvent[]
     createTimelineEvent({
       id: 'seed-evt-dentist',
       label: 'Dentist',
+      description: 'Routine checkup at 10am',
       startDate: shiftIsoDate(todayIso, -5),
     }),
     createTimelineEvent({
@@ -93,11 +94,13 @@ export function buildDemoEvents(todayIso: string = toIsoDate()): TimelineEvent[]
     createTimelineEvent({
       id: 'seed-evt-concert',
       label: 'Concert',
+      description: 'Indie night at The Forum',
       startDate: shiftIsoDate(todayIso, -20),
     }),
     createTimelineEvent({
       id: 'seed-evt-holiday',
       label: 'Long weekend away',
+      description: 'Coast trip with friends',
       startDate: shiftIsoDate(todayIso, -18),
       endDate: shiftIsoDate(todayIso, -15),
     }),
