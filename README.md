@@ -26,17 +26,19 @@ npm run build-storybook
 
 ## Deploy (S3)
 
-Static SPA hosting is on bucket `mood-meter-507861384016` (Asia Pacific Sydney; website hosting + public `GetObject` for objects). Credentials stay out of the repo (local AWS profile or Cursor env secrets). Set `AWS_DEFAULT_REGION` / `AWS_REGION` before syncing.
+Static build is on bucket `mood-meter-507861384016` (Asia Pacific Sydney) under the `dist/` prefix, with public `GetObject`. Vite uses `base: './'` so assets resolve under that prefix. Credentials stay out of the repo (local AWS profile or Cursor env secrets). Set `AWS_DEFAULT_REGION` / `AWS_REGION` before syncing.
 
 ```bash
 npm run build
-aws s3 sync dist/ s3://mood-meter-507861384016/ --delete
+aws s3 sync dist/ s3://mood-meter-507861384016/dist/ --delete
 # or:
 ./scripts/deploy-s3.sh
 ```
 
-Website host pattern: `http://mood-meter-507861384016.s3-website-<region>.amazonaws.com`  
-DynamoDB table (persistence later): `mood-meter`. CloudFront/HTTPS and CI deploy are follow-ups.
+**Browser URL (HTTPS):** `https://mood-meter-507861384016.s3.<region>.amazonaws.com/dist/index.html`  
+(Same virtual-hosted REST pattern as the WA map app — not CloudFront, not the `s3-website-*` endpoint.)
+
+DynamoDB table (persistence later): `mood-meter`. CloudFront / custom domain and CI deploy are follow-ups.
 
 ## Repo
 

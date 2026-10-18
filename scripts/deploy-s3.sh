@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Deploy the Vite production build to the Mood Meter S3 website bucket.
+# Deploy the Vite production build to the Mood Meter S3 bucket under dist/.
+# Primary browser URL is the virtual-hosted HTTPS REST object URL (not s3-website-*).
 # Requires: AWS CLI credentials with s3:PutObject/DeleteObject on the bucket.
 # No secrets live in this repo — use env / IAM / Cursor secrets.
 # pragma: allowlist secret — region default is public infra metadata, not a credential
@@ -12,13 +13,14 @@ if [[ -z "$REGION" ]]; then
 fi
 
 BUCKET="${MOOD_METER_S3_BUCKET:-mood-meter-507861384016}"
+PREFIX="${MOOD_METER_S3_PREFIX:-dist}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 cd "$ROOT"
 npm ci
 npm run build
 
-aws s3 sync dist/ "s3://${BUCKET}/" --delete --region "$REGION"
+aws s3 sync dist/ "s3://${BUCKET}/${PREFIX}/" --delete --region "$REGION"
 
-echo "Deployed to s3://${BUCKET}/"
-echo "Website: http://${BUCKET}.s3-website-${REGION}.amazonaws.com"
+echo "Deployed to s3://${BUCKET}/${PREFIX}/"
+echo "Open: https://${BUCKET}.s3.${REGION}.amazonaws.com/${PREFIX}/index.html"

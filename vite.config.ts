@@ -4,6 +4,9 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Relative base so assets resolve under the S3 `/dist/` object prefix
+  // (HTTPS virtual-hosted REST URL, same pattern as wa-critical-infrastructure-map).
+  base: './',
   plugins: [
     react(),
     tailwindcss(),
@@ -17,7 +20,7 @@ export default defineConfig({
         theme_color: '#0f1419',
         background_color: '#0f1419',
         display: 'standalone',
-        start_url: '/',
+        start_url: './',
         icons: [
           {
             src: 'favicon.svg',
