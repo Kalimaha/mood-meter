@@ -13,15 +13,18 @@ function readPngSize(path: string): { width: number; height: number } {
 describe('PWA / home-screen icon pattern (map-style)', () => {
   it('index.html uses relative apple-touch-icon and manifest links', () => {
     const html = readFileSync(resolve(root, 'index.html'), 'utf8')
-    expect(html).toContain('rel="apple-touch-icon" href="./mm-icon-180.png"')
-    expect(html).toContain('mm-icon-180.png')
     expect(html).toContain('rel="manifest" href="./manifest.webmanifest"')
+    expect(html).toContain('rel="apple-touch-icon" href="./apple-touch-icon.png"')
     expect(html).toContain('name="apple-mobile-web-app-capable" content="yes"')
     expect(html).toContain('name="mobile-web-app-capable" content="yes"')
     expect(html).toContain('name="apple-mobile-web-app-title" content="Mood Meter"')
     expect(html).toContain('name="apple-mobile-web-app-status-bar-style" content="default"')
-    expect(html).toContain("serviceWorker")
+    expect(html).toContain('name="theme-color" content="#f2efe9" media="(prefers-color-scheme: light)"')
+    expect(html).toContain('name="theme-color" content="#0f1419" media="(prefers-color-scheme: dark)"')
     expect(html).not.toContain('rel="icon"')
+    expect(html).not.toContain('mm-icon-180')
+    expect(html).not.toContain('vite-plugin-pwa')
+    expect(html).not.toContain('serviceWorker')
     expect(html).not.toMatch(/apple-touch-icon[^>]+href="\//)
   })
 
@@ -47,16 +50,29 @@ describe('PWA / home-screen icon pattern (map-style)', () => {
   })
 
   it('ships 180 / 192 / 512 PNGs next to the manifest in public/', () => {
-    const apple = resolve(root, 'public/mm-icon-180.png')
-    const appleLegacy = resolve(root, 'public/apple-touch-icon.png')
+    const apple = resolve(root, 'public/apple-touch-icon.png')
     const i192 = resolve(root, 'public/icon-192.png')
     const i512 = resolve(root, 'public/icon-512.png')
     expect(existsSync(apple)).toBe(true)
-    expect(existsSync(appleLegacy)).toBe(true)
     expect(existsSync(i192)).toBe(true)
     expect(existsSync(i512)).toBe(true)
     expect(readPngSize(apple)).toEqual({ width: 180, height: 180 })
     expect(readPngSize(i192)).toEqual({ width: 192, height: 192 })
     expect(readPngSize(i512)).toEqual({ width: 512, height: 512 })
+    // Map parity: no versioned / alternate icon filenames in public/
+    expect(existsSync(resolve(root, 'public/mm-icon-180.png'))).toBe(false)
+    expect(existsSync(resolve(root, 'public/favicon.svg'))).toBe(false)
+    expect(existsSync(resolve(root, 'public/favicon.png'))).toBe(false)
+  })
+
+  it('vite config has relative base and no vite-plugin-pwa', () => {
+    const vite = readFileSync(resolve(root, 'vite.config.ts'), 'utf8')
+    expect(vite).toContain("base: './'")
+    expect(vite).not.toContain('vite-plugin-pwa')
+    expect(vite).not.toContain('VitePWA')
+    const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as {
+      devDependencies?: Record<string, string>
+    }
+    expect(pkg.devDependencies?.['vite-plugin-pwa']).toBeUndefined()
   })
 })
