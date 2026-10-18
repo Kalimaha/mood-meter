@@ -65,7 +65,8 @@ function readCssVar(name: string, fallback: string): string {
 
 /**
  * Build an ECharts option for the cumulative mood path:
- * - y = running sum of daily −1/0/+1 (gaps = 0), origin at 0
+ * - y = running sum of daily −1/0/+1 (gaps = 0); path begins at y=0 on day 0
+ * - y-axis anchored so 0 is a first-class bound (scale: false; min/max from extent)
  * - horizontal grid every 5
  * - month verticals labeled like `MAR 26`
  * - optional event bands (markArea) and pins (markPoint)
@@ -204,14 +205,19 @@ export function buildMoodChartModel(
     },
     yAxis: {
       type: 'value',
+      // Anchor the scale so 0 is a real axis bound (not auto-floated mid-range).
       min: yExtent.min,
       max: yExtent.max,
       interval: 5,
+      scale: false,
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
         color: muted,
         fontSize: 11,
+        showMinLabel: true,
+        showMaxLabel: true,
+        formatter: (value: number) => String(value),
       },
       splitLine: {
         show: true,

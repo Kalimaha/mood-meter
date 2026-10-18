@@ -30,9 +30,9 @@ describe('dateToTimelineX', () => {
     expect(x3).toBeLessThan(x4)
   })
 
-  it('clamps before the first day to the first vertex', () => {
-    const firstX = dateToTimelineX(days, '2026-03-01')
-    expect(dateToTimelineX(days, '2026-02-28')).toBe(firstX)
+  it('clamps before the first day to the origin vertex', () => {
+    // Day 0 has an origin at index 0; dates before the series clamp there.
+    expect(dateToTimelineX(days, '2026-02-28')).toBe(DEFAULT_PADDING)
   })
 
   it('places a gap day between neighbors', () => {
