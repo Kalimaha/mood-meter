@@ -9,7 +9,7 @@ A minimal daily mood journal: rate each day up / flat / down, optionally note wh
 - Lucide icons
 - Storybook
 - Vitest + Testing Library
-- PWA via `vite-plugin-pwa`
+- Static web app manifest + PNGs for Add to Home Screen (same pattern as WA Infra Map — no `vite-plugin-pwa`)
 
 Auth (Google / Apple / etc.) is **post-M1 / after MVP** — not in this scaffold.
 
@@ -19,9 +19,10 @@ Auth (Google / Apple / etc.) is **post-M1 / after MVP** — not in this scaffold
 npm install
 npm run dev          # local app
 npm test             # unit tests
-npm run build        # production build (+ PWA SW)
+npm run build        # production build
 npm run storybook    # Storybook UI
 npm run build-storybook
+npm run deploy       # build + sync dist/ to S3
 ```
 
 ## Deploy (S3)
@@ -38,7 +39,7 @@ aws s3 sync dist/ s3://mood-meter-507861384016/dist/ --delete
 **Browser URL (HTTPS):** `https://mood-meter-507861384016.s3.<region>.amazonaws.com/dist/index.html`  
 (Same virtual-hosted REST pattern as the WA map app — not CloudFront, not the `s3-website-*` endpoint.)
 
-Use that **`.../dist/index.html`** URL for Add to Home Screen — not `.../dist/` (S3 virtual-hosted HTTPS REST returns AccessDenied for directory URLs; there is no index document). The PWA manifest uses absolute `start_url` `/dist/index.html` and `scope` `/dist/`; Workbox navigation fallback is disabled so the service worker cannot steer navigations to `/dist/`.
+Use that **`.../dist/index.html`** URL for Add to Home Screen — not `.../dist/` (S3 virtual-hosted HTTPS REST returns AccessDenied for directory URLs; there is no index document). Home-screen icons are static files next to `index.html` under `dist/` (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`) referenced with relative `./` hrefs in `index.html` and `manifest.webmanifest`.
 
 DynamoDB table (persistence later): `mood-meter`. CloudFront / custom domain and CI deploy are follow-ups.
 
