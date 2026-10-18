@@ -31,7 +31,7 @@ export interface TimelineSeriesPoint {
   date: string
   /** Daily contribution: +1 / 0 / −1 (missing days are 0). */
   delta: number
-  /** Running sum of deltas from the first calendar day (starts from 0). */
+  /** Running sum of deltas; series begins with an origin vertex at 0. */
   cumulative: number
   /** True when this day had a stored rating (not a gap fill). */
   hasEntry: boolean
@@ -79,7 +79,12 @@ export function formatMonthLabel(isoDate: string): string {
 
 /**
  * Expand sparse ratings into a continuous calendar series.
- * Missing days contribute delta 0. Cumulative starts at 0 and adds each day's delta.
+ * Missing days contribute delta 0.
+ *
+ * The path always begins at y=0 on day 0 (first calendar day) as an explicit
+ * origin vertex, then one end-of-day vertex per calendar day after applying
+ * that day's delta. Day 0 therefore appears twice when the first day has a
+ * non-zero delta (0 → ±1), which is intentional so the polyline starts at 0.
  */
 export function buildCumulativeSeries(
   days: readonly TimelineDay[],
@@ -102,6 +107,15 @@ export function buildCumulativeSeries(
   let cumulative = 0
   const startMs = utcDayMs(first.date)
   const endMs = utcDayMs(last.date)
+
+  // Day 0 origin: cumulative path starts at y = 0 on the first calendar day.
+  points.push({
+    date: first.date,
+    delta: 0,
+    cumulative: 0,
+    hasEntry: false,
+    rating: null,
+  })
 
   for (let ms = startMs; ms <= endMs; ms += MS_PER_DAY) {
     const date = isoFromUtcMs(ms)
@@ -145,8 +159,10 @@ export function monthMarkersForSeries(
 }
 
 /**
- * Y-axis extent for the cumulative path: always includes 0, padded to the
- * next multiples of 5 so horizontal grid lines every 5 are visible.
+ * Y-axis extent for the cumulative path.
+ * Always includes 0 as a first-class bound: when values stay non-negative the
+ * axis starts at 0 (not −5 mid-scale); when non-positive it ends at 0.
+ * Padded to multiples of 5 so horizontal grid lines every 5 are visible.
  */
 export function yAxisExtentForSeries(
   series: readonly TimelineSeriesPoint[],
@@ -158,9 +174,15 @@ export function yAxisExtentForSeries(
     if (point.cumulative > dataMax) dataMax = point.cumulative
   }
 
-  // At least ±5 so grid lines at -5, 0, 5 are always in view.
-  const min = Math.min(-5, Math.floor(dataMin / 5) * 5)
-  const max = Math.max(5, Math.ceil(dataMax / 5) * 5)
+  let min = dataMin >= 0 ? 0 : Math.floor(dataMin / 5) * 5
+  let max = dataMax <= 0 ? 0 : Math.ceil(dataMax / 5) * 5
+
+  // Ensure at least one 5-unit span so a 0 grid line is never a lone tick.
+  if (max - min < 5) {
+    if (min === 0) max = 5
+    else if (max === 0) min = -5
+    else max = min + 5
+  }
 
   const ticks: number[] = []
   for (let v = min; v <= max; v += 5) {
@@ -170,10 +192,17 @@ export function yAxisExtentForSeries(
   return { min, max, ticks }
 }
 
-/** Index of `isoDate` in the series, or -1. */
+/**
+ * Index of `isoDate` in the series, or -1.
+ * Prefers the last matching vertex so event pins sit on the end-of-day
+ * cumulative (not the day-0 origin when the first date is duplicated).
+ */
 export function seriesIndexOfDate(
   series: readonly TimelineSeriesPoint[],
   isoDate: string,
 ): number {
-  return series.findIndex((p) => p.date === isoDate)
+  for (let i = series.length - 1; i >= 0; i -= 1) {
+    if (series[i]?.date === isoDate) return i
+  }
+  return -1
 }
