@@ -33,13 +33,14 @@
 
 .mm-timeline__event-band {
   fill: var(--mm-accent);
-  fill-opacity: 0.18;
+  fill-opacity: 0.22;
   cursor: pointer;
   outline: none;
+  pointer-events: all;
 }
 
 .mm-timeline__event-band:focus {
-  fill-opacity: 0.28;
+  fill-opacity: 0.32;
   stroke: var(--mm-ring);
   stroke-width: 2;
 }
@@ -57,15 +58,9 @@
 }
 
 .mm-timeline__event-hit {
-  fill: transparent;
   cursor: pointer;
   outline: none;
   -webkit-tap-highlight-color: transparent;
-}
-
-.mm-timeline__event-hit--inert {
-  cursor: default;
-  pointer-events: none;
 }
 
 .mm-timeline__event-pin {
@@ -82,22 +77,23 @@
   fill: var(--mm-accent);
 }
 
+/* Portaled to document.body — fixed to viewport at SVG screen coords */
 .mm-timeline__popover {
-  position: absolute;
-  z-index: 3;
-  max-width: 12rem;
-  padding: 0.4rem 0.55rem;
-  transform: translate(-50%, calc(-100% - 10px));
+  position: fixed;
+  z-index: 9999;
+  max-width: 14rem;
+  padding: 0.45rem 0.6rem;
+  transform: translate(-50%, calc(-100% - 12px));
   border: 1px solid var(--mm-border);
   border-radius: calc(var(--mm-radius) * 0.75);
   background: var(--mm-bg-elevated);
   color: var(--mm-fg);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   line-height: 1.35;
   text-align: center;
   white-space: normal;
   pointer-events: none;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--mm-fg) 12%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--mm-fg) 18%, transparent);
 }
 
 .mm-timeline__empty {

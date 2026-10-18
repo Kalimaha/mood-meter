@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { eventHasDescription, isSingleDayEvent } from '../../domain/events'
 import type { TimelineEvent } from '../../domain/types'
 import {
@@ -23,14 +24,14 @@ export interface TimelineWithEventsProps {
 interface OpenPopover {
   id: string
   text: string
-  x: number
-  y: number
+  left: number
+  top: number
 }
 
 /**
  * Scrollable mood polyline. Event markers are drawn **in the same SVG**
  * at polyline coordinates (1 CSS px = 1 SVG unit) so they cannot drift
- * above/below the chart. Filled dots + range bands are tappable.
+ * off the chart. Popovers portal to document.body so overflow cannot clip them.
  */
 export function TimelineWithEvents({
   days,
@@ -43,13 +44,13 @@ export function TimelineWithEvents({
     () => buildTimelineGeometry(days, { step }),
     [days, step],
   )
+  const svgRef = useRef<SVGSVGElement>(null)
 
   const { singleDayEvents, rangeEvents } = useMemo(() => {
     const singles: TimelineEvent[] = []
     const ranges: TimelineEvent[] = []
     for (const event of events) {
       if (isSingleDayEvent(event)) {
-        // Only pins that fall on the rated timeline span
         if (isDateOnTimeline(days, event.startDate)) {
           singles.push(event)
         }
@@ -80,6 +81,7 @@ export function TimelineWithEvents({
       setPopover(null)
     }
     document.addEventListener('keydown', onKeyDown)
+    // Close on next tick's outside tap — listen in bubble phase after our open handler
     document.addEventListener('pointerdown', onPointerDown)
     return () => {
       document.removeEventListener('keydown', onKeyDown)
@@ -90,13 +92,47 @@ export function TimelineWithEvents({
   const hasPath = geometry.pathD.length > 0
   const rootClass = ['mm-timeline', className].filter(Boolean).join(' ')
 
-  const openDetail = (event: TimelineEvent, x: number, y: number) => {
+  /** Convert SVG user units → viewport CSS px for the portal popover. */
+  const svgToViewport = (x: number, y: number): { left: number; top: number } => {
+    const svg = svgRef.current
+    if (!svg) return { left: 0, top: 0 }
+    // Prefer CTM when available (real browsers); fall back for jsdom tests.
+    if (typeof svg.createSVGPoint === 'function' && svg.getScreenCTM) {
+      const pt = svg.createSVGPoint()
+      pt.x = x
+      pt.y = y
+      const ctm = svg.getScreenCTM()
+      if (ctm) {
+        const screen = pt.matrixTransform(ctm)
+        return { left: screen.x, top: screen.y }
+      }
+    }
+    const rect = svg.getBoundingClientRect()
+    const vb = svg.viewBox.baseVal
+    const vbW = vb.width || geometry.width || 1
+    const vbH = vb.height || geometry.height || 1
+    return {
+      left: rect.left + (x / vbW) * rect.width,
+      top: rect.top + (y / vbH) * rect.height,
+    }
+  }
+
+  const openDetail = (
+    event: TimelineEvent,
+    svgX: number,
+    svgY: number,
+    domEvent?: { stopPropagation: () => void },
+  ) => {
+    domEvent?.stopPropagation()
     const text = eventHasDescription(event)
       ? event.description!.trim()
       : event.label
-    setPopover((prev) =>
-      prev?.id === event.id ? null : { id: event.id, text, x, y },
-    )
+    if (popover?.id === event.id) {
+      setPopover(null)
+      return
+    }
+    const { left, top } = svgToViewport(svgX, svgY)
+    setPopover({ id: event.id, text, left, top })
   }
 
   return (
@@ -111,6 +147,7 @@ export function TimelineWithEvents({
         >
           {hasPath ? (
             <svg
+              ref={svgRef}
               className="mm-timeline__svg"
               viewBox={geometry.viewBox}
               width={geometry.width}
@@ -133,19 +170,27 @@ export function TimelineWithEvents({
                 const midY = geometry.height / 2
 
                 return (
-                  <g key={event.id} data-mm-timeline-hit="">
+                  <g
+                    key={event.id}
+                    data-mm-timeline-hit=""
+                    data-testid={`event-band-${event.id}`}
+                    onPointerUp={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      openDetail(event, midX, midY, e)
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <rect
                       className="mm-timeline__event-band"
                       x={x}
                       y={0}
                       width={width}
                       height={geometry.height}
-                      data-testid={`event-band-${event.id}`}
                       role="button"
                       tabIndex={0}
                       aria-label={`${event.label}, ${event.startDate} to ${event.endDate}`}
                       aria-expanded={popover?.id === event.id}
-                      onClick={() => openDetail(event, midX, midY)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault()
@@ -192,34 +237,42 @@ export function TimelineWithEvents({
                     data-has-description={filled ? 'true' : 'false'}
                     data-testid={`event-pin-${event.id}`}
                     transform={`translate(${x} ${y})`}
-                  >
-                    {/* Large invisible hit target for mobile Safari */}
-                    {filled ? (
-                      <circle
-                        className="mm-timeline__event-hit"
-                        r={16}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`${event.label}, ${event.startDate}`}
-                        aria-expanded={isOpen}
-                        aria-controls={
-                          isOpen ? `${popoverId}-${event.id}` : undefined
-                        }
-                        onClick={() => openDetail(event, x, y)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
+                    onPointerUp={
+                      filled
+                        ? (e) => {
+                            e.stopPropagation()
                             e.preventDefault()
-                            openDetail(event, x, y)
+                            openDetail(event, x, y, e)
                           }
-                        }}
-                      />
-                    ) : (
-                      <circle
-                        className="mm-timeline__event-hit mm-timeline__event-hit--inert"
-                        r={12}
-                        aria-label={`${event.label}, ${event.startDate}`}
-                      />
-                    )}
+                        : undefined
+                    }
+                    style={filled ? { cursor: 'pointer' } : undefined}
+                  >
+                    {/* Nearly-opaque fill so Safari hit-tests; opacity 0 is unreliable */}
+                    <circle
+                      className="mm-timeline__event-hit"
+                      r={18}
+                      fill="#ffffff"
+                      fillOpacity={0.01}
+                      pointerEvents={filled ? 'all' : 'none'}
+                      role={filled ? 'button' : undefined}
+                      tabIndex={filled ? 0 : undefined}
+                      aria-label={`${event.label}, ${event.startDate}`}
+                      aria-expanded={filled ? isOpen : undefined}
+                      aria-controls={
+                        filled && isOpen ? `${popoverId}-${event.id}` : undefined
+                      }
+                      onKeyDown={
+                        filled
+                          ? (e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                openDetail(event, x, y)
+                              }
+                            }
+                          : undefined
+                      }
+                    />
                     <circle
                       className={
                         filled
@@ -227,6 +280,7 @@ export function TimelineWithEvents({
                           : 'mm-timeline__event-pin mm-timeline__event-pin--hollow'
                       }
                       r={5}
+                      pointerEvents="none"
                       aria-hidden="true"
                     />
                   </g>
@@ -236,19 +290,22 @@ export function TimelineWithEvents({
           ) : (
             <p className="mm-timeline__empty">No ratings yet</p>
           )}
+        </div>
+      </div>
 
-          {popover ? (
+      {popover
+        ? createPortal(
             <div
               id={`${popoverId}-${popover.id}`}
               role="tooltip"
               className="mm-timeline__popover"
-              style={{ left: popover.x, top: popover.y }}
+              style={{ left: popover.left, top: popover.top }}
             >
               {popover.text}
-            </div>
-          ) : null}
-        </div>
-      </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }
