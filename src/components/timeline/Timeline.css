@@ -16,6 +16,14 @@
   scrollbar-color: var(--mm-border) transparent;
 }
 
+.mm-timeline__track {
+  min-width: 100%;
+}
+
+.mm-timeline__markers {
+  margin-bottom: 0.25rem;
+}
+
 .mm-timeline__svg {
   display: block;
   min-height: 6rem;

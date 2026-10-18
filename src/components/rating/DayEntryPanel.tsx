@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { formatIsoDateLabel, todayIso } from '../../domain/dates'
-import type { MoodRating } from '../../domain/types'
+import type { DayMoodEntry, MoodRating } from '../../domain/types'
 import { getDayEntry, upsertDayEntry } from '../../storage/days'
 import { DayNoteField } from '../notes/DayNoteField'
 import { RatingControls } from './RatingControls'
@@ -15,11 +15,14 @@ export interface DayEntryPanelProps {
   /** ISO date to edit; defaults to today. */
   date?: string
   storage?: Storage
+  /** Fires after a rating/note is persisted. */
+  onChange?: (entry: DayMoodEntry) => void
 }
 
 export function DayEntryPanel({
   date = todayIso(),
   storage = localStorage,
+  onChange,
 }: DayEntryPanelProps) {
   const [rating, setRating] = useState<MoodRating | undefined>()
   const [noteText, setNoteText] = useState('')
@@ -34,7 +37,7 @@ export function DayEntryPanel({
 
   const persist = useCallback(
     (nextRating: MoodRating, nextNote: string) => {
-      upsertDayEntry(
+      const entry = upsertDayEntry(
         {
           date,
           rating: nextRating,
@@ -44,8 +47,9 @@ export function DayEntryPanel({
       )
       setRating(nextRating)
       setNoteText(nextNote)
+      onChange?.(entry)
     },
-    [date, storage],
+    [date, onChange, storage],
   )
 
   const handleSelect = (next: MoodRating) => {
