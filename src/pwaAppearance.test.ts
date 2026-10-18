@@ -10,6 +10,25 @@ function readPngSize(path: string): { width: number; height: number } {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) }
 }
 
+/** PNG color type 6 = RGBA (map apple-touch-icon). Type 2 = RGB without alpha. */
+function readPngColorType(path: string): number {
+  const buf = readFileSync(path)
+  return buf.readUInt8(25)
+}
+
+/** Chunk type names in order. Map icons are IHDR + IDAT(+…) + IEND only. */
+function readPngChunkTypes(path: string): string[] {
+  const buf = readFileSync(path)
+  const chunks: string[] = []
+  let i = 8
+  while (i < buf.length) {
+    const length = buf.readUInt32BE(i)
+    chunks.push(buf.subarray(i + 4, i + 8).toString('latin1'))
+    i += 12 + length
+  }
+  return chunks
+}
+
 describe('PWA / home-screen icon pattern (map-style)', () => {
   it('index.html uses relative apple-touch-icon and manifest links', () => {
     const html = readFileSync(resolve(root, 'index.html'), 'utf8')
@@ -59,6 +78,24 @@ describe('PWA / home-screen icon pattern (map-style)', () => {
     expect(readPngSize(apple)).toEqual({ width: 180, height: 180 })
     expect(readPngSize(i192)).toEqual({ width: 192, height: 192 })
     expect(readPngSize(i512)).toEqual({ width: 512, height: 512 })
+    // Map parity: RGBA (color type 6), not RGB-only
+    expect(readPngColorType(apple)).toBe(6)
+    expect(readPngColorType(i192)).toBe(6)
+    expect(readPngColorType(i512)).toBe(6)
+    // Map parity: no ICC/EXIF/ancillary junk — only IHDR + IDAT + IEND
+    for (const path of [apple, i192, i512]) {
+      const chunks = readPngChunkTypes(path)
+      expect(chunks[0]).toBe('IHDR')
+      expect(chunks[chunks.length - 1]).toBe('IEND')
+      expect(chunks.slice(1, -1).every((c) => c === 'IDAT')).toBe(true)
+      expect(chunks).not.toContain('iCCP')
+      expect(chunks).not.toContain('eXIf')
+      expect(chunks).not.toContain('tEXt')
+      expect(chunks).not.toContain('pHYs')
+      expect(chunks).not.toContain('cHRM')
+      expect(chunks).not.toContain('bKGD')
+      expect(chunks).not.toContain('tIME')
+    }
     // Map parity: no versioned / alternate icon filenames in public/
     expect(existsSync(resolve(root, 'public/mm-icon-180.png'))).toBe(false)
     expect(existsSync(resolve(root, 'public/favicon.svg'))).toBe(false)
@@ -74,5 +111,19 @@ describe('PWA / home-screen icon pattern (map-style)', () => {
       devDependencies?: Record<string, string>
     }
     expect(pkg.devDependencies?.['vite-plugin-pwa']).toBeUndefined()
+  })
+
+  it('deploy script matches map aws s3 sync flags', () => {
+    const deploy = readFileSync(resolve(root, 'scripts/deploy-s3.sh'), 'utf8')
+    // Strip comments so docs mentioning forbidden flags do not fail the guardrail.
+    const code = deploy
+      .split('\n')
+      .filter((line) => !line.trimStart().startsWith('#'))
+      .join('\n')
+    expect(code).toMatch(/aws s3 sync dist\/ .* --region "\$REGION" --delete/)
+    expect(code).not.toMatch(/--cache-control/)
+    expect(code).not.toMatch(/--acl\b/)
+    expect(code).not.toMatch(/--metadata-directive/)
+    expect(code).not.toMatch(/--content-type/)
   })
 })
