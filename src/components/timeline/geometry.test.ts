@@ -47,10 +47,12 @@ describe('buildPoints', () => {
     expect(buildPoints([])).toEqual([])
   })
 
-  it('uses cumulative y (up → −step in SVG space)', () => {
+  it('starts at y=0 then up → −step in SVG space', () => {
     const points = buildPoints([day('2026-01-01', 'up')], DEFAULT_STEP)
-    expect(points).toHaveLength(1)
-    expect(points[0]).toEqual({ x: 0, y: -DEFAULT_STEP })
+    expect(points).toHaveLength(2)
+    expect(points[0]?.x).toBe(0)
+    expect(points[0]?.y).toBeCloseTo(0)
+    expect(points[1]).toEqual({ x: DEFAULT_STEP, y: -DEFAULT_STEP })
   })
 
   it('fills missing days as flat (cumulative unchanged)', () => {
@@ -58,13 +60,15 @@ describe('buildPoints', () => {
       [day('2026-01-01', 'up'), day('2026-01-03', 'flat')],
       DEFAULT_STEP,
     )
-    expect(points).toHaveLength(3)
-    expect(points[0]?.y).toBeCloseTo(-DEFAULT_STEP)
+    // Origin + 3 calendar days
+    expect(points).toHaveLength(4)
+    expect(points[0]?.y).toBeCloseTo(0)
     expect(points[1]?.y).toBeCloseTo(-DEFAULT_STEP)
     expect(points[2]?.y).toBeCloseTo(-DEFAULT_STEP)
+    expect(points[3]?.y).toBeCloseTo(-DEFAULT_STEP)
   })
 
-  it('accumulates ups and downs', () => {
+  it('accumulates ups and downs from a 0 origin', () => {
     const points = buildPoints(
       [
         day('2026-01-01', 'up'),
@@ -73,11 +77,11 @@ describe('buildPoints', () => {
       ],
       DEFAULT_STEP,
     )
-    expect(points.map((p) => p.y)).toEqual([
-      -DEFAULT_STEP,
-      -DEFAULT_STEP * 2,
-      -DEFAULT_STEP,
-    ])
+    expect(points).toHaveLength(4)
+    expect(points[0]?.y).toBeCloseTo(0)
+    expect(points[1]?.y).toBeCloseTo(-DEFAULT_STEP)
+    expect(points[2]?.y).toBeCloseTo(-DEFAULT_STEP * 2)
+    expect(points[3]?.y).toBeCloseTo(-DEFAULT_STEP)
   })
 })
 
@@ -112,7 +116,8 @@ describe('buildTimelineGeometry', () => {
       day('2026-01-02', 'down'),
     ])
     expect(g.pathD.startsWith('M ')).toBe(true)
-    expect(g.points.length).toBe(2)
+    // Origin + 2 calendar days
+    expect(g.points.length).toBe(3)
     expect(g.viewBox).toBe(`0 0 ${g.width} ${g.height}`)
     expect(g.points.every((p) => p.x >= 0 && p.y >= 0)).toBe(true)
   })

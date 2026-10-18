@@ -15,7 +15,7 @@ describe('buildMoodChartModel', () => {
     expect(model.option).toEqual({})
   })
 
-  it('sets y-axis interval 5 and includes month mark lines', () => {
+  it('starts the path at 0 and anchors the y-axis at 0', () => {
     const model = buildMoodChartModel({
       days,
       accentColor: '#3dcea0',
@@ -24,13 +24,16 @@ describe('buildMoodChartModel', () => {
       fgColor: '#e8eef4',
     })
     expect(model.series.length).toBeGreaterThan(2)
+    expect(model.series[0]?.cumulative).toBe(0)
     const yAxis = Array.isArray(model.option.yAxis)
       ? model.option.yAxis[0]
       : model.option.yAxis
-    expect(yAxis).toMatchObject({ interval: 5, min: -5 })
+    expect(yAxis).toMatchObject({ interval: 5, min: 0, scale: false })
     const series0 = Array.isArray(model.option.series)
       ? model.option.series[0]
       : model.option.series
+    const lineData = (series0 as { data?: number[] }).data
+    expect(lineData?.[0]).toBe(0)
     const markLine = (series0 as { markLine?: { data?: unknown[] } }).markLine
     expect(markLine?.data?.length).toBeGreaterThanOrEqual(2)
   })
