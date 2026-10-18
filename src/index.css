@@ -54,7 +54,7 @@ body {
   flex-direction: column;
   gap: 1.5rem;
   padding: 2rem 1.25rem 3rem;
-  max-width: 40rem;
+  max-width: 44rem;
   margin-inline: auto;
 }
 
@@ -80,7 +80,7 @@ body {
 .app-main {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.5rem;
 }
 
 .app-lede {

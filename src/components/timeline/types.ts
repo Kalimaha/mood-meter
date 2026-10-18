@@ -1,11 +1,13 @@
-/** Local three-value daily rating (matches domain MoodRating). */
-export type DayRating = 'up' | 'flat' | 'down'
+import type { MoodRating } from '../../domain/types'
+
+/** Alias of domain `MoodRating` — prefer importing MoodRating for new code. */
+export type DayRating = MoodRating
 
 /** One day on the timeline polyline. */
 export interface TimelineDay {
   /** ISO date YYYY-MM-DD */
   date: string
-  rating: DayRating
+  rating: MoodRating
 }
 
 export interface Point {
