@@ -1,0 +1,96 @@
+@import 'tailwindcss';
+
+:root {
+  color-scheme: light dark;
+
+  --mm-bg: #f4f6f8;
+  --mm-bg-elevated: #ffffff;
+  --mm-fg: #0f1419;
+  --mm-fg-muted: #5b6570;
+  --mm-accent: #1a7a5c;
+  --mm-accent-fg: #ffffff;
+  --mm-border: #d5dde6;
+  --mm-ring: #1a7a5c66;
+  --mm-font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mm-radius: 0.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mm-bg: #0f1419;
+    --mm-bg-elevated: #1a222c;
+    --mm-fg: #e8eef4;
+    --mm-fg-muted: #9aa7b5;
+    --mm-accent: #3dcea0;
+    --mm-accent-fg: #0f1419;
+    --mm-border: #2a3542;
+    --mm-ring: #3dcea066;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--mm-font-sans);
+  background: var(--mm-bg);
+  color: var(--mm-fg);
+  line-height: 1.5;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem 1.25rem 3rem;
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-logo {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--mm-accent);
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.app-lede {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--mm-fg);
+}
+
+.app-meta {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--mm-fg-muted);
+}
