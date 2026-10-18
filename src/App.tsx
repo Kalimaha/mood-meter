@@ -1,7 +1,22 @@
-import { HomeShell } from './components/HomeShell'
+import { Activity } from 'lucide-react'
+import { DayEntryPanel } from './components/rating/DayEntryPanel'
 
 function App() {
-  return <HomeShell />
+  return (
+    <div className="app-shell">
+      <header className="app-header">
+        <Activity className="app-logo" aria-hidden="true" />
+        <h1 className="app-title">Mood Meter</h1>
+      </header>
+      <main className="app-main">
+        <p className="app-lede">
+          A minimal daily mood journal. Rate each day, optionally note why, and
+          watch the path over time.
+        </p>
+        <DayEntryPanel />
+      </main>
+    </div>
+  )
 }
 
 export default App
