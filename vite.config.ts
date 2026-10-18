@@ -19,8 +19,10 @@ export default defineConfig({
       // Manifest + icons still ship for Add to Home Screen.
       selfDestroying: true,
       includeAssets: [
+        'favicon.png',
         'favicon.svg',
         'apple-touch-icon.png',
+        'apple-touch-icon-precomposed.png',
         'apple-touch-icon-v4.png',
         'pwa-192-v4.png',
         'pwa-512-v4.png',

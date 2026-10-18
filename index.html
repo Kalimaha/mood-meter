@@ -2,9 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- Absolute /dist/ path: iOS Add to Home Screen uses apple-touch-icon, not the web manifest. -->
+    <!-- Gauge PNG favicon (not letter/M from title) -->
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <!-- Relative (same folder as index under /dist/) + absolute for Safari probes -->
+    <link rel="apple-touch-icon" href="./apple-touch-icon-v4.png" sizes="180x180" />
     <link rel="apple-touch-icon" href="/dist/apple-touch-icon-v4.png" sizes="180x180" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f1419" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
