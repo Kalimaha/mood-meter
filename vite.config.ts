@@ -3,9 +3,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-/** Absolute under the S3 /dist/ prefix (bucket origin). Cache-busted filenames. */
-const ICON_192 = '/dist/pwa-192-v3.png'
-const ICON_512 = '/dist/pwa-512-v3.png'
+/** Absolute under the S3 /dist/ prefix (bucket origin). Cache-busted v4 from Guido’s JPG. */
+const ICON_192 = '/dist/pwa-192-v4.png'
+const ICON_512 = '/dist/pwa-512-v4.png'
 
 export default defineConfig({
   // Relative base so assets resolve under the S3 `/dist/` object prefix
@@ -20,9 +20,10 @@ export default defineConfig({
       selfDestroying: true,
       includeAssets: [
         'favicon.svg',
-        'apple-touch-icon-v3.png',
-        'pwa-192-v3.png',
-        'pwa-512-v3.png',
+        'apple-touch-icon.png',
+        'apple-touch-icon-v4.png',
+        'pwa-192-v4.png',
+        'pwa-512-v4.png',
         'mood-meter-app-icon.jpg',
       ],
       manifest: {
@@ -46,12 +47,6 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
-          },
-          {
-            src: ICON_512,
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
           },
         ],
       },
