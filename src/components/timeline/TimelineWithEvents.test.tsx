@@ -13,16 +13,17 @@ const days: TimelineDay[] = [
 ]
 
 describe('TimelineWithEvents', () => {
-  it('renders the polyline for stored days', () => {
-    const { container } = render(<TimelineWithEvents days={days} />)
+  it('renders the chart for stored days', () => {
+    render(<TimelineWithEvents days={days} />)
     expect(
       screen.getByRole('region', { name: 'Mood timeline' }),
     ).toBeInTheDocument()
-    expect(container.querySelector('svg.mm-timeline__svg')).toBeTruthy()
+    expect(screen.getByTestId('mood-timeline-chart')).toBeTruthy()
+    expect(screen.getByTestId('mock-echarts')).toBeTruthy()
   })
 
-  it('places filled/hollow event pins on the SVG track', () => {
-    const { container } = render(
+  it('places event pin hit targets for in-range singles', () => {
+    render(
       <TimelineWithEvents
         days={days}
         events={[
@@ -41,14 +42,8 @@ describe('TimelineWithEvents', () => {
       />,
     )
 
-    const filled = container.querySelector(
-      'svg [data-testid="event-pin-bday"].mm-timeline__event-pin--filled',
-    )
-    const hollow = container.querySelector(
-      'svg [data-testid="event-pin-empty"].mm-timeline__event-pin--hollow',
-    )
-    expect(filled).toBeTruthy()
-    expect(hollow).toBeTruthy()
+    expect(screen.getByTestId('event-pin-bday')).toBeTruthy()
+    expect(screen.getByTestId('event-pin-empty')).toBeTruthy()
     expect(
       screen.getByRole('button', { name: /Birthday, 2026-03-01/i }),
     ).toBeInTheDocument()

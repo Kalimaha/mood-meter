@@ -6,12 +6,15 @@ const RATING_DELTA: Record<MoodRating, number> = {
   down: -1,
 }
 
-/** Numeric delta used for timeline segment geometry. */
+/** Numeric daily delta for the cumulative timeline (+1 / 0 / −1). */
 export function ratingDelta(rating: MoodRating): number {
   return RATING_DELTA[rating]
 }
 
-/** Slope angle in degrees between consecutive day ratings for the polyline. */
+/**
+ * Legacy slope angle between consecutive ratings (45° geometry).
+ * Prefer `ratingDelta` + cumulative sum for the chart.
+ */
 export function segmentAngle(from: MoodRating, to: MoodRating): number {
   const rise = ratingDelta(to) - ratingDelta(from)
   if (rise === 0) return 0

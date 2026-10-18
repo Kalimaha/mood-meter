@@ -1,21 +1,21 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import ReactECharts from 'echarts-for-react/lib/core'
 import { eventHasDescription, isSingleDayEvent } from '../../domain/events'
 import type { TimelineEvent } from '../../domain/types'
-import {
-  dateToTimelinePoint,
-  isDateOnTimeline,
-} from './dateToX'
-import {
-  buildTimelineGeometry,
-  DEFAULT_STEP,
-} from './geometry'
+import { buildMoodChartModel, DEFAULT_PX_PER_DAY } from './chartOption'
+import echarts from './echarts'
+import { dateToChartPoint } from './geometry'
+import { isDateOnTimeline } from './dateToX'
+import { yAxisExtentForSeries } from './series'
 import type { TimelineDay } from './types'
 import './Timeline.css'
 
 export interface TimelineWithEventsProps {
   days: readonly TimelineDay[]
   events?: readonly TimelineEvent[]
+  pxPerDay?: number
+  /** @deprecated Alias of pxPerDay. */
   step?: number
   className?: string
   'aria-label'?: string
@@ -29,20 +29,28 @@ interface OpenPopover {
 }
 
 /**
- * Mood polyline in SVG (1 CSS px = 1 SVG unit).
- * Interactive hit targets are HTML overlays at the same coordinates so
- * mobile Safari gets reliable taps; popovers portal to document.body.
+ * Cumulative mood chart (ECharts) with event bands/pins.
+ * Interactive hit targets are HTML overlays so mobile Safari gets reliable taps;
+ * popovers portal to document.body.
  */
 export function TimelineWithEvents({
   days,
   events = [],
-  step = DEFAULT_STEP,
+  pxPerDay,
+  step,
   className,
   'aria-label': ariaLabel = 'Mood timeline',
 }: TimelineWithEventsProps) {
-  const geometry = useMemo(
-    () => buildTimelineGeometry(days, { step }),
-    [days, step],
+  const perDay = pxPerDay ?? step ?? DEFAULT_PX_PER_DAY
+
+  const model = useMemo(
+    () => buildMoodChartModel({ days, events, pxPerDay: perDay }),
+    [days, events, perDay],
+  )
+
+  const yExtent = useMemo(
+    () => yAxisExtentForSeries(model.series),
+    [model.series],
   )
 
   const { singleDayEvents, rangeEvents } = useMemo(() => {
@@ -54,15 +62,15 @@ export function TimelineWithEvents({
           singles.push(event)
         }
       } else if (
-        days.length > 0 &&
-        event.startDate <= (days[days.length - 1]?.date ?? '') &&
-        (event.endDate ?? event.startDate) >= (days[0]?.date ?? '')
+        model.series.length > 0 &&
+        event.startDate <= (model.series[model.series.length - 1]?.date ?? '') &&
+        (event.endDate ?? event.startDate) >= (model.series[0]?.date ?? '')
       ) {
         ranges.push(event)
       }
     }
     return { singleDayEvents: singles, rangeEvents: ranges }
-  }, [days, events])
+  }, [days, events, model.series])
 
   const [popover, setPopover] = useState<OpenPopover | null>(null)
   const popoverId = useId()
@@ -80,7 +88,6 @@ export function TimelineWithEvents({
       setPopover(null)
     }
     document.addEventListener('keydown', onKeyDown)
-    // Defer so the opening click cannot immediately dismiss the popover.
     const timer = window.setTimeout(() => {
       document.addEventListener('pointerdown', onPointerDown)
     }, 0)
@@ -91,7 +98,7 @@ export function TimelineWithEvents({
     }
   }, [popover])
 
-  const hasPath = geometry.pathD.length > 0
+  const hasPath = model.series.length > 0
   const rootClass = ['mm-timeline', className].filter(Boolean).join(' ')
 
   const openDetail = (event: TimelineEvent, clientX: number, clientY: number) => {
@@ -105,100 +112,51 @@ export function TimelineWithEvents({
     )
   }
 
+  const layout = {
+    width: model.width,
+    height: model.height,
+    yMin: yExtent.min,
+    yMax: yExtent.max,
+  }
+
   return (
     <div className={rootClass} role="region" aria-label={ariaLabel}>
       <div className="mm-timeline__scroll">
         <div
           className="mm-timeline__track"
           style={{
-            width: geometry.width,
-            height: hasPath ? geometry.height : undefined,
+            width: model.width,
+            height: hasPath ? model.height : undefined,
           }}
         >
           {hasPath ? (
             <>
-              <svg
-                className="mm-timeline__svg"
-                viewBox={geometry.viewBox}
-                width={geometry.width}
-                height={geometry.height}
+              <div
+                className="mm-timeline__chart"
+                data-testid="mood-timeline-chart"
                 aria-hidden="true"
               >
-                {rangeEvents.map((event) => {
-                  const start = dateToTimelinePoint(days, event.startDate, {
-                    step,
-                  })
-                  const end = dateToTimelinePoint(
-                    days,
-                    event.endDate ?? event.startDate,
-                    { step },
-                  )
-                  const x = Math.min(start.x, end.x)
-                  const width = Math.max(Math.abs(end.x - start.x), 8)
-                  return (
-                    <rect
-                      key={`band-vis-${event.id}`}
-                      className="mm-timeline__event-band"
-                      x={x}
-                      y={0}
-                      width={width}
-                      height={geometry.height}
-                      pointerEvents="none"
-                    />
-                  )
-                })}
-                <path
-                  className="mm-timeline__line"
-                  d={geometry.pathD}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
+                <ReactECharts
+                  echarts={echarts}
+                  option={model.option}
+                  style={{ width: model.width, height: model.height }}
+                  opts={{ renderer: 'canvas' }}
+                  notMerge
+                  lazyUpdate
                 />
-                {geometry.points.map((p, i) => (
-                  <circle
-                    key={i === 0 ? 'start' : (days[i - 1]?.date ?? `p-${i}`)}
-                    className="mm-timeline__dot"
-                    cx={p.x}
-                    cy={p.y}
-                    r={3.5}
-                  />
-                ))}
-                {singleDayEvents.map((event) => {
-                  const { x, y } = dateToTimelinePoint(days, event.startDate, {
-                    step,
-                  })
-                  const filled = eventHasDescription(event)
-                  return (
-                    <circle
-                      key={`pin-vis-${event.id}`}
-                      className={
-                        filled
-                          ? 'mm-timeline__event-pin mm-timeline__event-pin--filled'
-                          : 'mm-timeline__event-pin mm-timeline__event-pin--hollow'
-                      }
-                      cx={x}
-                      cy={y}
-                      r={5}
-                      data-has-description={filled ? 'true' : 'false'}
-                      data-testid={`event-pin-${event.id}`}
-                    />
-                  )
-                })}
-              </svg>
+              </div>
 
-              {/* HTML hit layer — same px space as SVG; reliable on iOS Safari */}
               <div className="mm-timeline__hits" aria-hidden={false}>
                 {rangeEvents.map((event) => {
-                  const start = dateToTimelinePoint(days, event.startDate, {
-                    step,
-                  })
-                  const end = dateToTimelinePoint(
-                    days,
+                  const start = dateToChartPoint(
+                    model.series,
+                    event.startDate,
+                    layout,
+                  )
+                  const end = dateToChartPoint(
+                    model.series,
                     event.endDate ?? event.startDate,
-                    { step },
+                    layout,
                   )
                   const left = Math.min(start.x, end.x)
                   const width = Math.max(Math.abs(end.x - start.x), 8)
@@ -209,7 +167,7 @@ export function TimelineWithEvents({
                       data-mm-timeline-hit=""
                       data-testid={`event-band-${event.id}`}
                       className="mm-timeline__hit-band"
-                      style={{ left, width, height: geometry.height }}
+                      style={{ left, width, height: model.height }}
                       aria-label={`${event.label}, ${event.startDate} to ${event.endDate}`}
                       aria-expanded={popover?.id === event.id}
                       onClick={(e) => {
@@ -225,15 +183,18 @@ export function TimelineWithEvents({
                   )
                 })}
                 {singleDayEvents.map((event) => {
-                  const { x, y } = dateToTimelinePoint(days, event.startDate, {
-                    step,
-                  })
+                  const { x, y } = dateToChartPoint(
+                    model.series,
+                    event.startDate,
+                    layout,
+                  )
                   const filled = eventHasDescription(event)
                   if (!filled) {
                     return (
                       <span
                         key={event.id}
                         data-mm-timeline-hit=""
+                        data-testid={`event-pin-${event.id}`}
                         className="mm-timeline__hit-pin mm-timeline__hit-pin--inert"
                         style={{ left: x, top: y }}
                         aria-label={`${event.label}, ${event.startDate}`}
@@ -246,6 +207,7 @@ export function TimelineWithEvents({
                       type="button"
                       data-mm-timeline-hit=""
                       data-has-description="true"
+                      data-testid={`event-pin-${event.id}`}
                       className="mm-timeline__hit-pin"
                       style={{ left: x, top: y }}
                       aria-label={`${event.label}, ${event.startDate}`}

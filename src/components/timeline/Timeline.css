@@ -12,7 +12,7 @@
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  padding: 0.75rem 0.5rem;
+  padding: 0.5rem 0.25rem;
   scrollbar-color: var(--mm-border) transparent;
 }
 
@@ -21,20 +21,16 @@
   min-width: 100%;
 }
 
-/* 1 CSS px === 1 SVG user unit — never scale with max-height or markers drift */
-.mm-timeline__svg {
+.mm-timeline__chart {
   display: block;
-  width: auto;
-  height: auto;
-  max-width: none;
-  color: var(--mm-accent);
-  overflow: visible;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
 }
 
-.mm-timeline__event-band {
-  fill: var(--mm-accent);
-  fill-opacity: 0.22;
+.mm-timeline__chart .echarts-for-react,
+.mm-timeline__chart canvas {
+  pointer-events: none;
 }
 
 .mm-timeline__hits {
@@ -73,29 +69,6 @@
   pointer-events: none;
   width: 12px;
   height: 12px;
-}
-
-.mm-timeline__line {
-  color: inherit;
-}
-
-.mm-timeline__dot {
-  fill: var(--mm-bg-elevated);
-  stroke: var(--mm-accent);
-  stroke-width: 2;
-}
-
-.mm-timeline__event-pin {
-  stroke: var(--mm-accent);
-  stroke-width: 2;
-}
-
-.mm-timeline__event-pin--hollow {
-  fill: var(--mm-bg-elevated);
-}
-
-.mm-timeline__event-pin--filled {
-  fill: var(--mm-accent);
 }
 
 /* Portaled to document.body — fixed to viewport at click coords */
