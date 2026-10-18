@@ -13,6 +13,18 @@ A minimal daily mood journal: rate each day up / flat / down, optionally note wh
 
 Auth (Google / Apple / etc.) is **post-M1 / after MVP** — not in this scaffold.
 
+## Demo seed
+
+On first visit (empty localStorage), the app writes **500** demo mood days (~70% flat) plus several single-day and range events (`src/storage/seed.ts`). The applied flag is `mood-meter:demo-seed:v3`.
+
+- **Empty storage** → seed once, set `v3`.
+- **Prior demo flags (`v1` / `v2`)** → replace days + events with the current seed, clear legacy flags, set `v3`.
+- **Already on `v3`** → no-op (user edits kept).
+- **Days/events present without a seed flag** → set `v3` only; do not overwrite.
+- **Force reset (tests):** `ensureDemoSeed({ force: true })` or clear via `clearDemoSeed()`.
+
+Bump by renaming the flag to `vN+1` and listing the old key under `LEGACY_SEED_KEYS`.
+
 ## Scripts
 
 ```bash
