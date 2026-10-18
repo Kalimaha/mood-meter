@@ -10,6 +10,12 @@ function readPngSize(path: string): { width: number; height: number } {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) }
 }
 
+/** PNG color type 6 = RGBA (map apple-touch-icon). Type 2 = RGB without alpha. */
+function readPngColorType(path: string): number {
+  const buf = readFileSync(path)
+  return buf.readUInt8(25)
+}
+
 describe('PWA / home-screen icon pattern (map-style)', () => {
   it('index.html uses relative apple-touch-icon and manifest links', () => {
     const html = readFileSync(resolve(root, 'index.html'), 'utf8')
@@ -59,6 +65,10 @@ describe('PWA / home-screen icon pattern (map-style)', () => {
     expect(readPngSize(apple)).toEqual({ width: 180, height: 180 })
     expect(readPngSize(i192)).toEqual({ width: 192, height: 192 })
     expect(readPngSize(i512)).toEqual({ width: 512, height: 512 })
+    // Map parity: RGBA (color type 6), not RGB-only — iOS was falling back to “M” on RGB
+    expect(readPngColorType(apple)).toBe(6)
+    expect(readPngColorType(i192)).toBe(6)
+    expect(readPngColorType(i512)).toBe(6)
     // Map parity: no versioned / alternate icon filenames in public/
     expect(existsSync(resolve(root, 'public/mm-icon-180.png'))).toBe(false)
     expect(existsSync(resolve(root, 'public/favicon.svg'))).toBe(false)
