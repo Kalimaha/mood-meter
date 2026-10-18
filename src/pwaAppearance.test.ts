@@ -13,7 +13,8 @@ function readPngSize(path: string): { width: number; height: number } {
 describe('PWA / home-screen icon pattern (map-style)', () => {
   it('index.html uses relative apple-touch-icon and manifest links', () => {
     const html = readFileSync(resolve(root, 'index.html'), 'utf8')
-    expect(html).toContain('rel="apple-touch-icon" href="./apple-touch-icon.png"')
+    expect(html).toContain('rel="apple-touch-icon" href="./mm-icon-180.png"')
+    expect(html).toContain('mm-icon-180.png')
     expect(html).toContain('rel="manifest" href="./manifest.webmanifest"')
     expect(html).toContain('name="apple-mobile-web-app-capable" content="yes"')
     expect(html).toContain('name="mobile-web-app-capable" content="yes"')
@@ -46,10 +47,12 @@ describe('PWA / home-screen icon pattern (map-style)', () => {
   })
 
   it('ships 180 / 192 / 512 PNGs next to the manifest in public/', () => {
-    const apple = resolve(root, 'public/apple-touch-icon.png')
+    const apple = resolve(root, 'public/mm-icon-180.png')
+    const appleLegacy = resolve(root, 'public/apple-touch-icon.png')
     const i192 = resolve(root, 'public/icon-192.png')
     const i512 = resolve(root, 'public/icon-512.png')
     expect(existsSync(apple)).toBe(true)
+    expect(existsSync(appleLegacy)).toBe(true)
     expect(existsSync(i192)).toBe(true)
     expect(existsSync(i512)).toBe(true)
     expect(readPngSize(apple)).toEqual({ width: 180, height: 180 })
