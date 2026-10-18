@@ -1,5 +1,3 @@
-import { Activity } from 'lucide-react'
-
 /**
  * Minimal Phase 1 placeholder shell — not the full mood UI.
  */
@@ -7,7 +5,6 @@ export function HomeShell() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <Activity className="app-logo" aria-hidden="true" />
         <h1 className="app-title">Mood Meter</h1>
       </header>
       <main className="app-main">

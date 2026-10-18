@@ -18,7 +18,7 @@ describe('App composition', () => {
     )
   })
 
-  it('renders day entry, timeline, and events panels', () => {
+  it('renders title, timeline, and day entry', () => {
     render(<App />)
 
     expect(
@@ -26,9 +26,11 @@ describe('App composition', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { name: 'Timeline' }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Events' })).toBeInTheDocument()
+      screen.queryByRole('heading', { name: 'Timeline' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'Events' }),
+    ).not.toBeInTheDocument()
     expect(screen.getByText(/No ratings yet/i)).toBeInTheDocument()
   })
 
@@ -47,13 +49,17 @@ describe('App composition', () => {
 
   it('auto-seeds demo moods and events on first empty visit', () => {
     clearDemoSeed()
-    render(<App />)
+    const { container } = render(<App />)
 
     expect(screen.queryByText(/No ratings yet/i)).not.toBeInTheDocument()
     expect(
       screen.getByRole('region', { name: 'Mood timeline' }),
     ).toBeInTheDocument()
-    expect(screen.getAllByText('Dentist').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Long weekend away').length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('button', { name: /Dentist/i }),
+    ).toBeInTheDocument()
+    expect(
+      container.querySelector('[data-testid="event-band-seed-evt-holiday"]'),
+    ).toBeTruthy()
   })
 })
