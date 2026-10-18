@@ -39,21 +39,29 @@ npm run deploy       # build + sync dist/ to S3
 
 ## Deploy (S3)
 
-Static build is on bucket `mood-meter-507861384016` (Asia Pacific Sydney) under the `dist/` prefix, with public `GetObject`. Vite uses `base: './'` so assets resolve under that prefix. Credentials stay out of the repo (local AWS profile or Cursor env secrets). Set `AWS_DEFAULT_REGION` / `AWS_REGION` before syncing.
+Static build is on bucket `mood-meter-app` (Asia Pacific Sydney) under the `dist/` prefix, with public `GetObject`. Vite uses `base: './'` so assets resolve under that prefix. Credentials stay out of the repo (local AWS profile or Cursor env secrets). Set `AWS_DEFAULT_REGION` / `AWS_REGION` before syncing. Override with `MOOD_METER_S3_BUCKET` if needed (legacy: `mood-meter-507861384016`).
 
 ```bash
 npm run build
-aws s3 sync dist/ s3://mood-meter-507861384016/dist/ --delete
+aws s3 sync dist/ s3://mood-meter-app/dist/ --delete
 # or:
 ./scripts/deploy-s3.sh
 ```
 
-**Browser URL (HTTPS):** `https://mood-meter-507861384016.s3.<region>.amazonaws.com/dist/index.html`  
-(Same virtual-hosted REST pattern as the WA map app — not CloudFront, not the `s3-website-*` endpoint.)
+**Preferred browser URL (HTTPS):** CloudFront once provisioned — `https://<distribution>.cloudfront.net/index.html` (and `/icon-test.html`). Origin is `mood-meter-app` with `OriginPath=/dist` so paths are at the distribution root.
 
-Use that **`.../dist/index.html`** URL for Add to Home Screen — not `.../dist/` (S3 virtual-hosted HTTPS REST returns AccessDenied for directory URLs; there is no index document). Home-screen icons are static files next to `index.html` under `dist/` (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`) referenced with relative `./` hrefs in `index.html` and `manifest.webmanifest`.
+```bash
+# Needs cloudfront:* on IAM user (see scripts/iam-cloudfront-policy.json)
+./scripts/create-cloudfront.sh
+./scripts/verify-cloudfront-urls.sh
+```
 
-DynamoDB table (persistence later): `mood-meter`. CloudFront / custom domain and CI deploy are follow-ups.
+**S3 REST fallback:** `https://mood-meter-app.s3.<region>.amazonaws.com/dist/index.html`  
+(Same virtual-hosted REST pattern as the WA map — not the `s3-website-*` endpoint.) iOS Add-to-Home may fail to pick icons on raw `*.amazonaws.com` hosts; prefer CloudFront for that test.
+
+Use an explicit **`index.html`** URL for Add to Home Screen — not a bare directory on S3 REST (AccessDenied; no index document). Home-screen icons are static files next to `index.html` under `dist/` (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`) referenced with relative `./` hrefs in `index.html` and `manifest.webmanifest`.
+
+DynamoDB table (persistence later): `mood-meter`. Custom domain / CI deploy are follow-ups.
 
 ## Repo
 
