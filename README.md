@@ -44,14 +44,23 @@ Static build is on bucket `mood-meter-507861384016` (Asia Pacific Sydney) under 
 ```bash
 npm run build
 aws s3 sync dist/ s3://mood-meter-507861384016/dist/ --delete
-# or:
+# or (build + CORS + typed Content-Type for icons/manifest):
 ./scripts/deploy-s3.sh
+# CORS alone (map-identical GET/HEAD from *):
+./scripts/apply-s3-cors.sh
 ```
 
 **Browser URL (HTTPS):** `https://mood-meter-507861384016.s3.<region>.amazonaws.com/dist/index.html`  
 (Same virtual-hosted REST pattern as the WA map app — not CloudFront, not the `s3-website-*` endpoint.)
 
+**S3 CORS:** bucket allows `GET`/`HEAD` from `*` (same rule as WA Infra Map). WebKit sometimes CORS-fetches manifest icons; without this, OPTIONS returns 403 and Add-to-Home can fall back to a letter monogram. Config: `scripts/s3-cors.json`.
+
 Use that **`.../dist/index.html`** URL for Add to Home Screen — not `.../dist/` (S3 virtual-hosted HTTPS REST returns AccessDenied for directory URLs; there is no index document). Home-screen icons are static files next to `index.html` under `dist/` (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`) referenced with relative `./` hrefs in `index.html` and `manifest.webmanifest`.
+
+**Icon diagnostic:** `…/dist/icon-test.html` — static HTML only (map-identical Apple meta + manifest + apple-touch-icon); no React/JS. Use it to isolate host/install discovery from the app shell.
+
+Optional HTTP website endpoint (leftover config; HTTP only — HTTPS would need CloudFront):  
+`http://mood-meter-507861384016.s3-website-<region>.amazonaws.com/dist/index.html`
 
 DynamoDB table (persistence later): `mood-meter`. CloudFront / custom domain and CI deploy are follow-ups.
 
