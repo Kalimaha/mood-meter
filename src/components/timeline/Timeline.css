@@ -21,93 +21,82 @@
   min-width: 100%;
 }
 
-.mm-timeline__markers,
-.mm-timeline__bands {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  margin: 0;
-  pointer-events: none;
-}
-
-.mm-timeline__markers .mm-event-pin,
-.mm-timeline__bands .mm-timeline__event-band {
-  pointer-events: auto;
-}
-
+/* 1 CSS px === 1 SVG user unit — never scale with max-height or markers drift */
 .mm-timeline__svg {
   display: block;
-  min-height: 6rem;
-  max-height: 10rem;
+  width: auto;
   height: auto;
+  max-width: none;
   color: var(--mm-accent);
+  overflow: visible;
 }
 
 .mm-timeline__event-band {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--mm-accent) 16%, transparent);
+  fill: var(--mm-accent);
+  fill-opacity: 0.18;
   cursor: pointer;
   outline: none;
 }
 
-.mm-timeline__event-band:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--mm-ring);
-}
-
-.mm-timeline__band-popover {
-  top: 50%;
-  transform: translate(-50%, -50%);
+.mm-timeline__event-band:focus {
+  fill-opacity: 0.28;
+  stroke: var(--mm-ring);
+  stroke-width: 2;
 }
 
 .mm-timeline__line {
   color: inherit;
+  pointer-events: none;
 }
 
 .mm-timeline__dot {
   fill: var(--mm-bg-elevated);
   stroke: var(--mm-accent);
   stroke-width: 2;
+  pointer-events: none;
 }
 
-.mm-event-pin__dot {
-  display: block;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-  border: 2px solid var(--mm-accent);
-  box-sizing: border-box;
+.mm-timeline__event-hit {
+  fill: transparent;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.mm-event-pin__dot--hollow {
-  background: transparent;
+.mm-timeline__event-hit--inert {
+  cursor: default;
+  pointer-events: none;
 }
 
-.mm-event-pin__dot--filled {
-  background: var(--mm-accent);
+.mm-timeline__event-pin {
+  stroke: var(--mm-accent);
+  stroke-width: 2;
+  pointer-events: none;
 }
 
-.mm-event-pin__popover {
+.mm-timeline__event-pin--hollow {
+  fill: var(--mm-bg-elevated);
+}
+
+.mm-timeline__event-pin--filled {
+  fill: var(--mm-accent);
+}
+
+.mm-timeline__popover {
   position: absolute;
-  top: calc(100% + 0.35rem);
-  left: 50%;
-  z-index: 2;
+  z-index: 3;
   max-width: 12rem;
-  padding: 0.35rem 0.5rem;
-  transform: translateX(-50%);
+  padding: 0.4rem 0.55rem;
+  transform: translate(-50%, calc(-100% - 10px));
   border: 1px solid var(--mm-border);
   border-radius: calc(var(--mm-radius) * 0.75);
   background: var(--mm-bg-elevated);
   color: var(--mm-fg);
-  font-size: 0.7rem;
-  line-height: 1.3;
+  font-size: 0.75rem;
+  line-height: 1.35;
   text-align: center;
   white-space: normal;
+  pointer-events: none;
   box-shadow: 0 4px 12px color-mix(in srgb, var(--mm-fg) 12%, transparent);
 }
 

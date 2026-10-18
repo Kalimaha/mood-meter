@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calendarDaysBetween, dateToTimelineX } from './dateToX'
-import { buildTimelineGeometry, DEFAULT_PADDING, DEFAULT_STEP } from './geometry'
+import { buildTimelineGeometry, DEFAULT_PADDING } from './geometry'
 import type { TimelineDay } from './types'
 
 const days: TimelineDay[] = [
@@ -26,9 +26,9 @@ describe('dateToTimelineX', () => {
     expect(dateToTimelineX(days, '2026-03-04')).toBe(geometry.points[3]?.x)
   })
 
-  it('extrapolates before the first day by step', () => {
+  it('clamps before the first day to the first vertex (stay on track)', () => {
     const firstX = dateToTimelineX(days, '2026-03-01')
-    expect(dateToTimelineX(days, '2026-02-28')).toBe(firstX - DEFAULT_STEP)
+    expect(dateToTimelineX(days, '2026-02-28')).toBe(firstX)
   })
 
   it('interpolates between rated days by calendar', () => {

@@ -9,7 +9,10 @@ import {
 import { EVENTS_STORAGE_KEY, loadEvents, saveEvents } from './events'
 
 /** Set after demo seed runs (or to skip seed in tests). */
-export const DEMO_SEED_APPLIED_KEY = 'mood-meter:demo-seed:v1'
+export const DEMO_SEED_APPLIED_KEY = 'mood-meter:demo-seed:v2'
+const LEGACY_SEED_KEYS = [
+  'mood-meter:demo-seed:v1',
+] as const
 
 /** 25 mood samples: mix of up (+), flat (=), down (−). */
 export const DEMO_MOOD_PATTERN: readonly MoodRating[] = [
@@ -115,6 +118,7 @@ export function buildDemoEvents(todayIso: string = toIsoDate()): TimelineEvent[]
 
 /**
  * Writes demo moods/events when storage is empty (first visit).
+ * Migrates v1 → v2 by refreshing events (so described singles show filled dots).
  * Tests can set `DEMO_SEED_APPLIED_KEY` to skip without seeding.
  */
 export function ensureDemoSeed(options: DemoSeedOptions = {}): DemoSeedResult {
@@ -125,12 +129,22 @@ export function ensureDemoSeed(options: DemoSeedOptions = {}): DemoSeedResult {
     return { applied: false, dayCount: 0, eventCount: 0 }
   }
 
+  const hadLegacy = LEGACY_SEED_KEYS.some((key) => storage.getItem(key))
   const existingDays = loadDayEntries(storage)
   const existingEvents = loadEvents(storage)
-  if (
-    !options.force &&
-    (Object.keys(existingDays).length > 0 || existingEvents.length > 0)
-  ) {
+  const hasDays = Object.keys(existingDays).length > 0
+  const hasEvents = existingEvents.length > 0
+
+  // Upgrade legacy seed: keep days, replace events with described singles + ranges
+  if (!options.force && hadLegacy && hasDays) {
+    const events = buildDemoEvents(today)
+    saveEvents(events, storage)
+    for (const key of LEGACY_SEED_KEYS) storage.removeItem(key)
+    storage.setItem(DEMO_SEED_APPLIED_KEY, '1')
+    return { applied: true, dayCount: Object.keys(existingDays).length, eventCount: events.length }
+  }
+
+  if (!options.force && (hasDays || hasEvents)) {
     storage.setItem(DEMO_SEED_APPLIED_KEY, '1')
     return { applied: false, dayCount: 0, eventCount: 0 }
   }
@@ -139,6 +153,7 @@ export function ensureDemoSeed(options: DemoSeedOptions = {}): DemoSeedResult {
   const events = buildDemoEvents(today)
   storage.setItem(DAYS_STORAGE_KEY, JSON.stringify(days))
   saveEvents(events, storage)
+  for (const key of LEGACY_SEED_KEYS) storage.removeItem(key)
   storage.setItem(DEMO_SEED_APPLIED_KEY, '1')
 
   return {
@@ -151,6 +166,7 @@ export function ensureDemoSeed(options: DemoSeedOptions = {}): DemoSeedResult {
 /** Clear demo flag + storage keys (tests / reset). */
 export function clearDemoSeed(storage: Storage = localStorage): void {
   storage.removeItem(DEMO_SEED_APPLIED_KEY)
+  for (const key of LEGACY_SEED_KEYS) storage.removeItem(key)
   storage.removeItem(DAYS_STORAGE_KEY)
   storage.removeItem(EVENTS_STORAGE_KEY)
 }

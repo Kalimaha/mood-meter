@@ -10,7 +10,6 @@ describe('App composition', () => {
   beforeEach(() => {
     clearDayEntries()
     clearEvents()
-    // Skip auto demo-seed so composition tests control empty vs seeded state.
     localStorage.setItem(DEMO_SEED_APPLIED_KEY, '1')
     vi.stubGlobal(
       'confirm',
@@ -18,19 +17,19 @@ describe('App composition', () => {
     )
   })
 
-  it('renders title, timeline, Event section, and create form', () => {
+  it('renders Today day-entry and separate Event form', () => {
     render(<App />)
 
     expect(
       screen.getByRole('heading', { name: 'Mood Meter' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Event' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Save$/i })).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /create event/i }),
     ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('heading', { name: 'Today' }),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/Sunday,/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/minimal daily mood journal/i)).not.toBeInTheDocument()
     expect(screen.getByText(/No ratings yet/i)).toBeInTheDocument()
   })
@@ -40,6 +39,7 @@ describe('App composition', () => {
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: 'Up' }))
+    await user.click(screen.getByRole('button', { name: /^Save$/i }))
 
     expect(screen.queryByText(/No ratings yet/i)).not.toBeInTheDocument()
     expect(
@@ -57,8 +57,8 @@ describe('App composition', () => {
       screen.getByRole('region', { name: 'Mood timeline' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Dentist/i }),
-    ).toBeInTheDocument()
+      container.querySelector('[data-has-description="true"]'),
+    ).toBeTruthy()
     expect(
       container.querySelector('[data-testid="event-band-seed-evt-holiday"]'),
     ).toBeTruthy()

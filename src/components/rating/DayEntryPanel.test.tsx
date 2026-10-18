@@ -40,31 +40,32 @@ describe('DayEntryPanel', () => {
     )
   })
 
-  it('saves a first rating for the day', async () => {
+  it('saves a first rating for the day via Save', async () => {
     const user = userEvent.setup()
     render(<DayEntryPanel date="2026-10-18" storage={storage} />)
 
     await user.click(screen.getByRole('button', { name: 'Up' }))
+    await user.click(screen.getByRole('button', { name: /^Save$/i }))
 
     expect(getDayEntry('2026-10-18', storage)?.rating).toBe('up')
     expect(screen.getByRole('status')).toHaveTextContent(/Saved up rating/i)
   })
 
-  it('confirms before overwriting an existing rating', async () => {
+  it('confirms before overwriting an existing rating on Save', async () => {
     const user = userEvent.setup()
     const confirm = vi.mocked(window.confirm)
     confirm.mockReturnValueOnce(true)
 
     render(<DayEntryPanel date="2026-10-18" storage={storage} />)
     await user.click(screen.getByRole('button', { name: 'Up' }))
+    await user.click(screen.getByRole('button', { name: /^Save$/i }))
     await user.click(screen.getByRole('button', { name: 'Down' }))
+    await user.click(screen.getByRole('button', { name: /^Save$/i }))
 
     expect(confirm).toHaveBeenCalled()
     expect(confirm.mock.calls[0]?.[0]).toMatch(/this day's|today's/)
     expect(getDayEntry('2026-10-18', storage)?.rating).toBe('down')
-    expect(screen.getByRole('status')).toHaveTextContent(
-      /Updated rating from up to down/i,
-    )
+    expect(screen.getByRole('status')).toHaveTextContent(/Saved down rating/i)
   })
 
   it('keeps the prior rating when overwrite is cancelled', async () => {
@@ -74,13 +75,15 @@ describe('DayEntryPanel', () => {
 
     render(<DayEntryPanel date="2026-10-18" storage={storage} />)
     await user.click(screen.getByRole('button', { name: 'Flat' }))
+    await user.click(screen.getByRole('button', { name: /^Save$/i }))
     await user.click(screen.getByRole('button', { name: 'Up' }))
+    await user.click(screen.getByRole('button', { name: /^Save$/i }))
 
     expect(getDayEntry('2026-10-18', storage)?.rating).toBe('flat')
     expect(screen.getByRole('status')).toHaveTextContent(/Kept flat rating/i)
   })
 
-  it('saves a note after a rating exists', async () => {
+  it('saves a note with the rating via Save', async () => {
     const user = userEvent.setup()
     render(<DayEntryPanel date="2026-10-18" storage={storage} />)
 
@@ -88,19 +91,20 @@ describe('DayEntryPanel', () => {
     const note = screen.getByLabelText('Note')
     await user.clear(note)
     await user.type(note, 'Good focus')
-    await user.tab()
+    await user.click(screen.getByRole('button', { name: /^Save$/i }))
 
     expect(getDayEntry('2026-10-18', storage)?.note?.text).toBe('Good focus')
-    expect(screen.getByRole('status')).toHaveTextContent(/Note saved/i)
+    expect(screen.getByRole('status')).toHaveTextContent(/Saved up rating/i)
   })
 
-  it('exposes an accessible date picker bound to the entry date', () => {
+  it('exposes Today heading and date picker without long weekday label', () => {
     render(<DayEntryPanel date="2026-10-17" storage={storage} />)
 
     const dateInput = screen.getByLabelText('Date')
     expect(dateInput).toHaveAttribute('type', 'date')
     expect(dateInput).toHaveValue('2026-10-17')
-    expect(screen.getByRole('heading', { name: 'Event' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument()
+    expect(screen.queryByText(/Saturday,/i)).not.toBeInTheDocument()
   })
 
   it('calls onDateChange and reloads the entry for the selected date', () => {
@@ -151,7 +155,7 @@ describe('DayEntryPanel', () => {
     fireEvent.change(dateInput, { target: { value: '2026-10-15' } })
 
     expect(dateInput).toHaveValue('2026-10-15')
-    expect(screen.getByRole('heading', { name: 'Event' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument()
   })
 
   it('uses this-day copy when confirming overwrite for a non-today date', async () => {
@@ -161,7 +165,9 @@ describe('DayEntryPanel', () => {
 
     render(<DayEntryPanel date="2026-10-01" storage={storage} />)
     await user.click(screen.getByRole('button', { name: 'Up' }))
+    await user.click(screen.getByRole('button', { name: /^Save$/i }))
     await user.click(screen.getByRole('button', { name: 'Flat' }))
+    await user.click(screen.getByRole('button', { name: /^Save$/i }))
 
     expect(confirm.mock.calls[0]?.[0]).toBe(
       "Replace this day's up rating with flat?",

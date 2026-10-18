@@ -4,12 +4,18 @@ import { describe, expect, it, vi } from 'vitest'
 import { EventForm } from './EventForm'
 
 describe('EventForm', () => {
-  it('has no visible field labels and a full-width Create event button', () => {
+  it('wraps fields in an Event section with optional end-date placeholder hint', () => {
     render(<EventForm onSubmit={vi.fn()} defaultStartDate="2026-10-18" />)
 
-    expect(screen.queryByText(/^Label$/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/^Start$/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/^End/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Event' })).toBeInTheDocument()
+    expect(screen.queryByText(/^Label$/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Start$/)).not.toBeInTheDocument()
+    expect(
+      screen.getByLabelText(/end date \(optional\)/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/end date is optional/i),
+    ).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /create event/i }),
     ).toHaveClass('w-full')
@@ -36,8 +42,8 @@ describe('EventForm', () => {
 
     await user.type(screen.getByLabelText(/^Label$/i), 'Review')
     await user.type(screen.getByLabelText(/^Description/i), 'Sprint review week')
-    await user.clear(screen.getByLabelText(/^End date$/i))
-    await user.type(screen.getByLabelText(/^End date$/i), '2026-04-05')
+    await user.clear(screen.getByLabelText(/end date \(optional\)/i))
+    await user.type(screen.getByLabelText(/end date \(optional\)/i), '2026-04-05')
     await user.click(screen.getByRole('button', { name: /create event/i }))
 
     expect(onSubmit).toHaveBeenCalledWith({

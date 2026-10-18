@@ -42,6 +42,7 @@ function App() {
         />
 
         <EventForm
+          title="Event"
           onSubmit={handleCreateEvent}
           defaultStartDate={selectedDate}
         />

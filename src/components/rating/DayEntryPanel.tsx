@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useState } from 'react'
-import { formatIsoDateLabel, todayIso } from '../../domain/dates'
+import { todayIso } from '../../domain/dates'
 import type { DayMoodEntry, MoodRating } from '../../domain/types'
 import { getDayEntry, upsertDayEntry } from '../../storage/days'
 import { DayNoteField } from '../notes/DayNoteField'
@@ -60,6 +60,7 @@ export function DayEntryPanel({
       setRating(nextRating)
       setNoteText(nextNote)
       onChange?.(entry)
+      return entry
     },
     [date, onChange, storage],
   )
@@ -75,39 +76,33 @@ export function DayEntryPanel({
   }
 
   const handleSelect = (next: MoodRating) => {
-    if (rating !== undefined && rating !== next) {
-      const confirmed = window.confirm(
-        `Replace ${dayPhrase} ${RATING_LABEL[rating]} rating with ${RATING_LABEL[next]}?`,
-      )
-      if (!confirmed) {
-        setStatus(`Kept ${RATING_LABEL[rating]} rating.`)
-        return
-      }
-      persist(next, noteText)
-      setStatus(
-        `Updated rating from ${RATING_LABEL[rating]} to ${RATING_LABEL[next]}.`,
-      )
-      return
-    }
-
-    if (rating === next) {
-      setStatus(`Already rated ${RATING_LABEL[next]} ${forDayPhrase}.`)
-      return
-    }
-
-    persist(next, noteText)
-    setStatus(`Saved ${RATING_LABEL[next]} rating ${forDayPhrase}.`)
+    setRating(next)
+    setStatus(null)
   }
 
-  const handleNoteBlur = () => {
+  const handleSave = () => {
     if (rating === undefined) {
-      setStatus('Pick a rating before saving a note.')
+      setStatus('Pick a rating before saving.')
       return
     }
+
+    const existing = getDayEntry(date, storage)
+    if (
+      existing !== undefined &&
+      existing.rating !== rating
+    ) {
+      const confirmed = window.confirm(
+        `Replace ${dayPhrase} ${RATING_LABEL[existing.rating]} rating with ${RATING_LABEL[rating]}?`,
+      )
+      if (!confirmed) {
+        setStatus(`Kept ${RATING_LABEL[existing.rating]} rating.`)
+        setRating(existing.rating)
+        return
+      }
+    }
+
     persist(rating, noteText)
-    setStatus(
-      noteText.trim().length > 0 ? 'Note saved.' : 'Note cleared.',
-    )
+    setStatus(`Saved ${RATING_LABEL[rating]} rating ${forDayPhrase}.`)
   }
 
   return (
@@ -125,31 +120,21 @@ export function DayEntryPanel({
           className="m-0 text-lg font-semibold"
           style={{ color: 'var(--mm-fg)' }}
         >
-          Event
+          Today
         </h2>
-        <div className="flex flex-col gap-1.5">
-          <input
-            id={dateInputId}
-            type="date"
-            value={date}
-            onChange={(e) => handleDateInputChange(e.target.value)}
-            aria-label="Date"
-            className="min-h-11 rounded-[var(--mm-radius)] border px-3 py-2 text-sm"
-            style={{
-              borderColor: 'var(--mm-border)',
-              background: 'var(--mm-bg)',
-              color: 'var(--mm-fg)',
-            }}
-            aria-describedby="day-entry-date-label"
-          />
-          <p
-            id="day-entry-date-label"
-            className="m-0 text-sm"
-            style={{ color: 'var(--mm-fg-muted)' }}
-          >
-            {formatIsoDateLabel(date)}
-          </p>
-        </div>
+        <input
+          id={dateInputId}
+          type="date"
+          value={date}
+          onChange={(e) => handleDateInputChange(e.target.value)}
+          aria-label="Date"
+          className="min-h-11 rounded-[var(--mm-radius)] border px-3 py-2 text-sm"
+          style={{
+            borderColor: 'var(--mm-border)',
+            background: 'var(--mm-bg)',
+            color: 'var(--mm-fg)',
+          }}
+        />
       </div>
 
       <RatingControls value={rating} onSelect={handleSelect} />
@@ -157,9 +142,16 @@ export function DayEntryPanel({
       <DayNoteField
         value={noteText}
         onChange={setNoteText}
-        onBlur={handleNoteBlur}
         disabled={rating === undefined}
       />
+
+      <button
+        type="button"
+        onClick={handleSave}
+        className="w-full min-h-11 rounded-[var(--mm-radius)] bg-[var(--mm-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--mm-accent-fg)] outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--mm-ring)]"
+      >
+        Save
+      </button>
 
       {status ? (
         <p

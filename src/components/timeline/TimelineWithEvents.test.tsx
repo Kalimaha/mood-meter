@@ -20,7 +20,57 @@ describe('TimelineWithEvents', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders single-day event pins on the track', () => {
+  it('places filled event pins on the SVG track (not an HTML overlay)', () => {
+    const { container } = render(
+      <TimelineWithEvents
+        days={days}
+        events={[
+          {
+            id: 'bday',
+            label: 'Birthday',
+            description: 'Cake day',
+            startDate: '2026-03-01',
+          },
+          {
+            id: 'empty',
+            label: 'Quiet',
+            startDate: '2026-03-03',
+          },
+        ]}
+      />,
+    )
+
+    const filled = container.querySelector(
+      '[data-testid="event-pin-bday"][data-has-description="true"] .mm-timeline__event-pin--filled',
+    )
+    const hollow = container.querySelector(
+      '[data-testid="event-pin-empty"][data-has-description="false"] .mm-timeline__event-pin--hollow',
+    )
+    expect(filled).toBeTruthy()
+    expect(hollow).toBeTruthy()
+    // Pins live inside the timeline SVG
+    expect(container.querySelector('svg [data-testid="event-pin-bday"]')).toBeTruthy()
+  })
+
+  it('ignores single-day events outside the rated span', () => {
+    const { container } = render(
+      <TimelineWithEvents
+        days={days}
+        events={[
+          {
+            id: 'outside',
+            label: 'Far',
+            description: 'Off chart',
+            startDate: '2026-02-01',
+          },
+        ]}
+      />,
+    )
+    expect(container.querySelector('[data-testid="event-pin-outside"]')).toBeNull()
+  })
+
+  it('shows description when clicking a filled pin or range band', async () => {
+    const user = userEvent.setup()
     render(
       <TimelineWithEvents
         days={days}
@@ -31,25 +81,6 @@ describe('TimelineWithEvents', () => {
             description: 'Cake day',
             startDate: '2026-03-01',
           },
-        ]}
-      />,
-    )
-
-    expect(
-      screen.getByRole('group', { name: 'Timeline event markers' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /Birthday/i }),
-    ).toBeInTheDocument()
-    expect(screen.queryByText('Birthday')).not.toBeInTheDocument()
-  })
-
-  it('draws clickable range bands that reveal description', async () => {
-    const user = userEvent.setup()
-    const { container } = render(
-      <TimelineWithEvents
-        days={days}
-        events={[
           {
             id: 'holiday',
             label: 'Long weekend',
@@ -61,14 +92,13 @@ describe('TimelineWithEvents', () => {
       />,
     )
 
-    const band = container.querySelector(
-      '[data-testid="event-band-holiday"]',
-    ) as HTMLButtonElement | null
-    expect(band).toBeTruthy()
-    expect(band?.tagName).toBe('BUTTON')
+    await user.click(screen.getByRole('button', { name: /Birthday, 2026-03-01/i }))
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Cake day')
 
     await user.click(
-      screen.getByRole('button', { name: /Long weekend, 2026-03-02 to 2026-03-04/i }),
+      screen.getByRole('button', {
+        name: /Long weekend, 2026-03-02 to 2026-03-04/i,
+      }),
     )
     expect(screen.getByRole('tooltip')).toHaveTextContent('Coast trip')
   })
